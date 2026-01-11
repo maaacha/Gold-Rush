@@ -384,6 +384,7 @@
 	ms_hand_background = new /atom/movable/screen/ms13/hand_background()
 	ms_hand_background.hud = src
 	static_inventory += ms_hand_background
+	world << "hud actually updated"
 
 	update_locked_slots()
 

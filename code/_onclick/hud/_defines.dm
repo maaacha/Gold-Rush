@@ -188,3 +188,5 @@
 #define ui_wanted_lvl "NORTH,11"
 
 #define HUD_WIDTH 3 // MOJAVE SUN ADDITION - Width of our sidepanel hud (in tiles)
+
+#define ui_loadout_setup "CENTER-1,CENTER-1:16" // MOJAVE SUN ADDITION - Loadout setup icon

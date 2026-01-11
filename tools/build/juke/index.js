@@ -4975,7 +4975,7 @@ var Worker = class {
     };
     const inputs = await fileMapper(this.target.inputs);
     const outputs = await fileMapper(this.target.outputs);
-    if (inputs.length > 0) {
+    if (inputs.length > 10000) {
       const needsRebuild = compareFiles(inputs, outputs);
       if (!needsRebuild) {
         logger.info(`Skipping '${nameStr}' (up to date)`);

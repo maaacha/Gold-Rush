@@ -11,6 +11,8 @@
 
 	display_order = JOB_DISPLAY_ORDER_MS13_WASTELANDER
 
+	loadout_tag = WASTELANDER_LOADOUTS
+
 /datum/outfit/job/ms13/wasteland/wastelander
 	name = "_Wastelander"
 	jobtype = /datum/job/ms13/wasteland/wastelander
@@ -93,39 +95,6 @@
 		/obj/item/clothing/under/ms13/wasteland/mechanicprewar/mechanicgrey,\
 		/obj/item/clothing/under/ms13/wasteland/mechanicprewar/mechanicgreen)
 
-	suit = pick(
-		/obj/item/clothing/suit/ms13/vest/brown,\
-		/obj/item/clothing/suit/ms13/vest/black,\
-		/obj/item/clothing/suit/ms13/vest,\
-		/obj/item/clothing/suit/ms13/ljacket/moleskin,\
-		/obj/item/clothing/suit/ms13/ljacket/wanderer,\
-		/obj/item/clothing/suit/ms13/ljacket/military,\
-		/obj/item/clothing/suit/ms13/ljacket/musty,\
-		/obj/item/clothing/suit/ms13/ljacket/biker,\
-		/obj/item/clothing/suit/ms13/ljacket/bomber, \
-		/obj/item/clothing/suit/ms13/ljacket, \
-		/obj/item/clothing/suit/toggle/ms13/wjacket/brown, \
-		/obj/item/clothing/suit/toggle/ms13/wjacket/black, \
-		/obj/item/clothing/suit/ms13/vest/letterman)
-
-
-	suit_store = pick(
-		/obj/item/gun/ballistic/automatic/pistol/ms13/m9mm, \
-		/obj/item/gun/ballistic/automatic/pistol/ms13/pistol22, \
-		/obj/item/gun/ballistic/rifle/ms13/varmint, \
-		/obj/item/gun/ballistic/revolver/ms13/caravan, \
-		/obj/item/gun/ballistic/revolver/ms13/rev10mm)
-
-
-	belt = pick(
-		/obj/item/knife/ms13, \
-		/obj/item/knife/ms13/switchblade/razor, \
-		/obj/item/ms13/hammer, \
-		/obj/item/ms13/knuckles, \
-		/obj/item/ms13/brick, \
-		/obj/item/ms13/handsaw, \
-		/obj/item/knife/ms13/throwingknife)
-
 	shoes = pick(
         /obj/item/clothing/shoes/ms13/tan, \
 		/obj/item/clothing/shoes/ms13/winter, \
@@ -133,16 +102,8 @@
 		/obj/item/clothing/shoes/ms13/brownie, \
 		/obj/item/clothing/shoes/ms13/crude)
 
-	if(prob(50))
-		r_pocket = /obj/item/flashlight/flare/ms13
-	else
-		r_pocket = null
 
-	if(prob(80))
-		l_pocket = pick(
-			/obj/item/stack/medical/gauze/ms13/three)
-	else
-		l_pocket = null
+
 
 /datum/outfit/job/ms13/wasteland/wastelander/post_equip(mob/living/carbon/human/H, visualsOnly)
 	. = ..()

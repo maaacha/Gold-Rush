@@ -11,6 +11,7 @@ Mojave Sun Job Base Class
 	paycheck = null
 	paycheck_department = null
 	job_flags = JOB_CREW_MANIFEST | JOB_EQUIP_RANK | JOB_NEW_PLAYER_JOINABLE | JOB_REOPEN_ON_ROUNDSTART_LOSS | JOB_ASSIGN_QUIRKS
+	var/loadout_tag = NONE // var to determine our jobs loadouts. do not change this if there are no loadouts for the job
 
 /datum/outfit/job/ms13
 	name = "Default"
