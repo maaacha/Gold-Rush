@@ -5,18 +5,32 @@
 /// The priority at which species runs, needed for external organs to apply properly.
 #define PREFERENCE_PRIORITY_SPECIES 2
 
+/**
+ * Some preferences get applied directly to bodyparts (anything head_flags related right now).
+ * These must apply after species, as species gaining might replace the bodyparts of the human.
+ */
+#define PREFERENCE_PRIORITY_BODYPARTS 3
+
 /// The priority at which gender is determined, needed for proper randomization.
-#define PREFERENCE_PRIORITY_GENDER 3
+#define PREFERENCE_PRIORITY_GENDER 4
 
 /// The priority at which body type is decided, applied after gender so we can
 /// support the "use gender" option.
-#define PREFERENCE_PRIORITY_BODY_TYPE 4
+#define PREFERENCE_PRIORITY_BODY_TYPE 5
+
+/// Used for preferences that rely on body setup being finalized.
+#define PREFERENCE_PRORITY_LATE_BODY_TYPE 6
+
+/// Equpping items based on preferences.
+/// Should happen after species and body type to make sure it looks right.
+/// Mostly redundant, but a safety net for saving/loading.
+#define PREFERENCE_PRIORITY_LOADOUT 7
 
 /// The priority at which names are decided, needed for proper randomization.
-#define PREFERENCE_PRIORITY_NAMES 5
+#define PREFERENCE_PRIORITY_NAMES 8
 
 /// Preferences that aren't names, but change the name changes set by PREFERENCE_PRIORITY_NAMES.
-#define PREFERENCE_PRIORITY_NAME_MODIFICATIONS 6
+#define PREFERENCE_PRIORITY_NAME_MODIFICATIONS 9
 
 /// The maximum preference priority, keep this updated, but don't use it for `priority`.
 #define MAX_PREFERENCE_PRIORITY PREFERENCE_PRIORITY_NAME_MODIFICATIONS
@@ -36,17 +50,13 @@ GLOBAL_LIST_INIT(preference_entries_by_key, init_preference_entries_by_key())
 
 /proc/init_preference_entries()
 	var/list/output = list()
-	for (var/datum/preference/preference_type as anything in subtypesof(/datum/preference))
-		if (initial(preference_type.abstract_type) == preference_type)
-			continue
+	for (var/datum/preference/preference_type as anything in valid_subtypesof(/datum/preference))
 		output[preference_type] = new preference_type
 	return output
 
 /proc/init_preference_entries_by_key()
 	var/list/output = list()
-	for (var/datum/preference/preference_type as anything in subtypesof(/datum/preference))
-		if (initial(preference_type.abstract_type) == preference_type)
-			continue
+	for (var/datum/preference/preference_type as anything in valid_subtypesof(/datum/preference))
 		output[initial(preference_type.savefile_key)] = GLOB.preference_entries[preference_type]
 	return output
 
@@ -65,6 +75,9 @@ GLOBAL_LIST_INIT(preference_entries_by_key, init_preference_entries_by_key())
 
 /// Represents an individual preference.
 /datum/preference
+	/// Do not instantiate if type matches this.
+	abstract_type = /datum/preference
+
 	/// The key inside the savefile to use.
 	/// This is also sent to the UI.
 	/// Once you pick this, don't change it.
@@ -74,9 +87,6 @@ GLOBAL_LIST_INIT(preference_entries_by_key, init_preference_entries_by_key())
 	/// This isn't used for anything other than as a key for UI data.
 	/// It is up to the PreferencesMenu UI itself to interpret it.
 	var/category = "misc"
-
-	/// Do not instantiate if type matches this.
-	var/abstract_type = /datum/preference
 
 	/// What savefile should this preference be read from?
 	/// Valid values are PREFERENCE_CHARACTER and PREFERENCE_PLAYER.
@@ -97,13 +107,21 @@ GLOBAL_LIST_INIT(preference_entries_by_key, init_preference_entries_by_key())
 	/// DOES have random body on, will this already be randomized?
 	var/randomize_by_default = TRUE
 
-	/// If the selected species has this in its /datum/species/mutant_bodyparts,
+	/// If the selected species has this in its /datum/species/body_markings,
 	/// will show the feature as selectable.
-	var/relevant_mutant_bodypart = null
+	var/datum/bodypart_overlay/simple/body_marking/relevant_body_markings = null
 
-	/// If the selected species has this in its /datum/species/species_traits,
+	/// If the selected species has this in its /datum/species/inherent_traits,
 	/// will show the feature as selectable.
-	var/relevant_species_trait = null
+	var/relevant_inherent_trait = null
+
+	/// If the selected species has this in its /datum/species/var/external_organs,
+	/// will show the feature as selectable.
+	var/obj/item/organ/relevant_organ = null
+
+	/// If the selected species has this head_flag by default,
+	/// will show the feature as selectable.
+	var/relevant_head_flag = null
 
 /// Called on the saved input when retrieving.
 /// Also called by the value sent from the user through UI. Do not trust it.
@@ -231,6 +249,8 @@ GLOBAL_LIST_INIT(preference_entries_by_key, init_preference_entries_by_key())
 		// things running pre-assets-initialization.
 		if (!isnull(Master.current_initializing_subsystem))
 			extra_info = "Info was attempted to be retrieved while [Master.current_initializing_subsystem] was initializing."
+		else if (!MC_RUNNING())
+			extra_info = "Info was attempted to be retrieved before the MC started, but not while it was actively initializing a subsystem"
 
 		CRASH("Preference type `[preference_type]` is invalid! [extra_info]")
 
@@ -301,18 +321,27 @@ GLOBAL_LIST_INIT(preference_entries_by_key, init_preference_entries_by_key())
 
 	return null
 
+/// Checks the species currently selected by the passed preferences object to see if it has this preference's key as a feature.
+/datum/preference/proc/current_species_has_savekey(datum/preferences/preferences)
+	var/species_type = preferences.read_preference(/datum/preference/choiced/species)
+	var/datum/species/species = GLOB.species_prototypes[species_type]
+	return (savefile_key in species.get_features())
+
+/// Checks if this preference is relevant and thus visible to the passed preferences object.
+/datum/preference/proc/has_relevant_feature(datum/preferences/preferences)
+	if(isnull(relevant_inherent_trait) && isnull(relevant_organ) && isnull(relevant_head_flag) && isnull(relevant_body_markings))
+		return TRUE
+
+	return current_species_has_savekey(preferences)
+
 /// Returns whether or not this preference is accessible.
 /// If FALSE, will not show in the UI and will not be editable (by update_preference).
 /datum/preference/proc/is_accessible(datum/preferences/preferences)
 	SHOULD_CALL_PARENT(TRUE)
 	SHOULD_NOT_SLEEP(TRUE)
 
-	if (!isnull(relevant_mutant_bodypart) || !isnull(relevant_species_trait))
-		var/species_type = preferences.read_preference(/datum/preference/choiced/species)
-
-		var/datum/species/species = new species_type
-		if (!(savefile_key in species.get_features()))
-			return FALSE
+	if (!has_relevant_feature(preferences))
+		return FALSE
 
 	if (!should_show_on_page(preferences.current_window))
 		return FALSE
@@ -329,9 +358,8 @@ GLOBAL_LIST_INIT(preference_entries_by_key, init_preference_entries_by_key())
 /// A preference that is a choice of one option among a fixed set.
 /// Used for preferences such as clothing.
 /datum/preference/choiced
-	/// If this is TRUE, icons will be generated.
-	/// This is necessary for if your `init_possible_values()` override
-	/// returns an assoc list of names to atoms/icons.
+	/// If this is TRUE, an icon will be generated for every value.
+	/// If you implement this, you must implement `icon_for(value)` for every possible value.
 	var/should_generate_icons = FALSE
 
 	var/list/cached_values
@@ -358,33 +386,30 @@ GLOBAL_LIST_INIT(preference_entries_by_key, init_preference_entries_by_key())
 	return cached_values
 
 /// Returns a list of every possible value, serialized.
-/// Return value can be in the form of:
-/// - A flat list of serialized values, such as list(MALE, FEMALE, PLURAL).
-/// - An assoc list of serialized values to atoms/icons.
 /datum/preference/choiced/proc/get_choices_serialized()
 	// Override `init_values()` instead.
 	SHOULD_NOT_OVERRIDE(TRUE)
 
 	var/list/serialized_choices = list()
-	var/choices = get_choices()
 
-	if (should_generate_icons)
-		for (var/choice in choices)
-			serialized_choices[serialize(choice)] = choices[choice]
-	else
-		for (var/choice in choices)
-			serialized_choices += serialize(choice)
+	for (var/choice in get_choices())
+		serialized_choices += serialize(choice)
 
 	return serialized_choices
 
 /// Returns a list of every possible value.
 /// This must be overriden by `/datum/preference/choiced` subtypes.
-/// Return value can be in the form of:
-/// - A flat list of raw values, such as list(MALE, FEMALE, PLURAL).
-/// - An assoc list of raw values to atoms/icons, in which case
-/// icons will be generated.
+/// If `should_generate_icons` is TRUE, then you will also need to implement `icon_for(value)`
+/// for every possible value.
 /datum/preference/choiced/proc/init_possible_values()
 	CRASH("`init_possible_values()` was not implemented for [type]!")
+
+/// When `should_generate_icons` is TRUE, this proc is called for every value.
+/// It can return either an /datum/universal_icon (see uni_icon() DEFINE) or a typepath to an atom to create.
+/datum/preference/choiced/proc/icon_for(value)
+	SHOULD_CALL_PARENT(FALSE)
+	SHOULD_NOT_SLEEP(TRUE)
+	CRASH("`icon_for()` was not implemented for [type], even though should_generate_icons = TRUE!")
 
 /datum/preference/choiced/is_valid(value)
 	return value in get_choices()
@@ -418,6 +443,42 @@ GLOBAL_LIST_INIT(preference_entries_by_key, init_preference_entries_by_key())
 
 	return data
 
+/// This subtype handles a lot of boilerplate for implementing a species preference tied to a feature key / sprite accessory
+/datum/preference/choiced/species_feature
+	abstract_type = /datum/preference/choiced/species_feature
+	/// What feature key does this feature represent?
+	/// Does not need to be set, it will infer it from either relevant_organ or relevant_body_markings.
+	/// However you can set it manually if you have a more complex feature.
+	var/feature_key
+
+/datum/preference/choiced/species_feature/New()
+	. = ..()
+	if(relevant_organ && relevant_organ::bodypart_overlay)
+		feature_key ||= relevant_organ::bodypart_overlay::feature_key
+		main_feature_name ||= capitalize(relevant_organ::name)
+	if(relevant_body_markings)
+		feature_key ||= relevant_body_markings::dna_feature_key
+		main_feature_name ||= "Body markings"
+	if(isnull(feature_key))
+		CRASH("`feature_key` was not set or inferable for [type]!")
+
+/datum/preference/choiced/species_feature/init_possible_values()
+	return assoc_to_keys_features(get_accessory_list())
+
+/datum/preference/choiced/species_feature/create_default_value()
+	return get_consistent_feature_entry(get_accessory_list())
+
+/datum/preference/choiced/species_feature/apply_to_human(mob/living/carbon/human/target, value)
+	target.dna.features[feature_key] = value
+
+/// Returns what acessory list to draw from
+/datum/preference/choiced/species_feature/proc/get_accessory_list() as /list
+	return SSaccessories.feature_list[feature_key]
+
+/// Get a specific accessory for a given value
+/datum/preference/choiced/species_feature/proc/get_accessory_for_value(value)
+	return get_accessory_list()[value]
+
 /// A preference that represents an RGB color of something.
 /// Will give the value as 6 hex digits, without a hash.
 /datum/preference/color
@@ -434,66 +495,6 @@ GLOBAL_LIST_INIT(preference_entries_by_key, init_preference_entries_by_key())
 
 /datum/preference/color/is_valid(value)
 	return findtext(value, GLOB.is_color)
-
-/datum/preference/tri_color
-	abstract_type = /datum/preference/tri_color
-
-/datum/preference/tri_color/deserialize(input, datum/preferences/preferences)
-	var/list/input_list = input
-	return list(sanitize_hexcolor(input_list[1]), sanitize_hexcolor(input_list[2]), sanitize_hexcolor(input_list[3]))
-
-/datum/preference/tri_color/create_default_value()
-	return list(COLOR_RED, COLOR_VIBRANT_LIME, COLOR_BLUE)
-
-/datum/preference/tri_color/serialize(input)
-	var/list/input_list = input
-	return list(sanitize_hexcolor(input_list[1]), sanitize_hexcolor(input_list[2]), sanitize_hexcolor(input_list[3]))
-
-/datum/preference/tri_color/is_valid(list/value)
-	return value.len == 3 && (findtext(value[1], GLOB.is_color) && findtext(value[2], GLOB.is_color) && findtext(value[3], GLOB.is_color))
-
-/// Takes an assoc list of names to /datum/sprite_accessory and returns a value
-/// fit for `/datum/preference/init_possible_values()`
-/proc/possible_values_for_sprite_accessory_list(list/datum/sprite_accessory/sprite_accessories)
-	var/list/possible_values = list()
-	for (var/name in sprite_accessories)
-		var/datum/sprite_accessory/sprite_accessory = sprite_accessories[name]
-		if (istype(sprite_accessory))
-			possible_values[name] = icon(sprite_accessory.icon, sprite_accessory.icon_state)
-		else
-			// This means it didn't have an icon state
-			possible_values[name] = icon('icons/mob/landmarks.dmi', "x")
-	return possible_values
-
-/// Takes an assoc list of names to /datum/sprite_accessory and returns a value
-/// fit for `/datum/preference/init_possible_values()`
-/// Different from `possible_values_for_sprite_accessory_list` in that it takes a list of layers
-/// such as BEHIND, FRONT, and ADJ.
-/// It also takes a "body part name", such as body_markings, wings, etc
-/// They are expected to be in order from lowest to top.
-/proc/possible_values_for_sprite_accessory_list_for_body_part(
-	list/datum/sprite_accessory/sprite_accessories,
-	body_part,
-	list/layers,
-)
-	var/list/possible_values = list()
-
-	for (var/name in sprite_accessories)
-		var/datum/sprite_accessory/sprite_accessory = sprite_accessories[name]
-
-		var/icon/final_icon
-
-		for (var/layer in layers)
-			var/icon/icon = icon(sprite_accessory.icon, "[body_part]_[sprite_accessory.icon_state]_[layer]")
-
-			if (isnull(final_icon))
-				final_icon = icon
-			else
-				final_icon.Blend(icon, ICON_OVERLAY)
-
-		possible_values[name] = final_icon
-
-	return possible_values
 
 /// A numeric preference with a minimum and maximum value
 /datum/preference/numeric
@@ -520,7 +521,7 @@ GLOBAL_LIST_INIT(preference_entries_by_key, init_preference_entries_by_key())
 	return rand(minimum, maximum)
 
 /datum/preference/numeric/is_valid(value)
-	return isnum(value) && value >= minimum && value <= maximum
+	return isnum(value) && value >= round(minimum, step) && value <= round(maximum, step)
 
 /datum/preference/numeric/compile_constant_data()
 	return list(
@@ -545,14 +546,6 @@ GLOBAL_LIST_INIT(preference_entries_by_key, init_preference_entries_by_key())
 /datum/preference/toggle/is_valid(value)
 	return value == TRUE || value == FALSE
 
-/datum/preference/toggle/admin
-	abstract_type = /datum/preference/toggle/admin
-
-/datum/preference/toggle/admin/is_accessible(datum/preferences/preferences)
-	if (!..(preferences))
-		return FALSE
-
-	return is_admin(preferences.parent)
 
 /// A string-based preference accepting arbitrary string values entered by the user, with a maximum length.
 /datum/preference/text

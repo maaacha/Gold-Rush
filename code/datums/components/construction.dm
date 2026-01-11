@@ -8,8 +8,8 @@
 	if(!isatom(parent))
 		return COMPONENT_INCOMPATIBLE
 
-	RegisterSignal(parent, COMSIG_PARENT_EXAMINE, PROC_REF(examine))
-	RegisterSignal(parent, COMSIG_PARENT_ATTACKBY, PROC_REF(action))
+	RegisterSignal(parent, COMSIG_ATOM_EXAMINE, PROC_REF(examine))
+	RegisterSignal(parent, COMSIG_ATOM_ATTACKBY, PROC_REF(action))
 	update_parent(index)
 
 /datum/component/construction/proc/examine(datum/source, mob/user, list/examine_list)
@@ -85,8 +85,8 @@
 				. = user.transferItemToLoc(I, parent)
 
 			// Using stacks
-			else 
-				if(istype(I, /obj/item/stack))
+			else
+				if(isstack(I))
 					. = I.use_tool(parent, user, 0, volume=50, amount=current_step["amount"])
 
 
@@ -103,7 +103,7 @@
 				if(located_item)
 					located_item.forceMove(drop_location())
 
-			else 
+			else
 				if(ispath(target_step_key, /obj/item/stack))
 					new target_step_key(drop_location(), target_step["amount"])
 

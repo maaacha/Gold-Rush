@@ -5,9 +5,9 @@ GLOBAL_LIST_INIT(medicine_reagents, build_medicine_reagents())
 
 /proc/build_reagents_to_food()
 	. = list()
-	for (var/type in subtypesof(/obj/item/reagent_containers/food))
-		var/obj/item/reagent_containers/food/item = new type()
-		for(var/datum/reagent/reagent as anything in item.list_reagents)
+	for (var/type in subtypesof(/obj/item/food))
+		var/obj/item/food/item = new type()
+		for(var/datum/reagent/reagent as anything in item.food_reagents)
 			var/chem_flags = initial(reagent.chemical_flags)
 			if(!VALID_RANDOM_RECIPE_REAGENT(chem_flags))
 				continue
@@ -35,10 +35,6 @@ GLOBAL_LIST_INIT(medicine_reagents, build_medicine_reagents())
 		var/chem_flags = initial(reagent.chemical_flags)
 		if(VALID_RANDOM_RECIPE_REAGENT(chem_flags))
 			. += reagent
-
-#define RNGCHEM_INPUT "input"
-#define RNGCHEM_CATALYSTS "catalysts"
-#define RNGCHEM_OUTPUT "output"
 
 /datum/chemical_reaction/randomized
 
@@ -69,7 +65,7 @@ GLOBAL_LIST_INIT(medicine_reagents, build_medicine_reagents())
 	///Highest pH value possible
 	var/max_ph = 14
 	///How much the range can deviate, and also affects impure range
-	var/inoptimal_range_ph = 3
+	var/suboptimal_range_ph = 3
 
 	///If the impurity failure threshold is randomized between 0 - 0.4
 	var/randomize_impurity_minimum = FALSE
@@ -117,9 +113,9 @@ GLOBAL_LIST_INIT(medicine_reagents, build_medicine_reagents())
 				thermic_constant = (rand(-200, 200))
 
 	if(randomize_req_ph)
-		optimal_ph_min = min_ph + rand(0, inoptimal_range_ph)
-		optimal_ph_max = max((max_ph + rand(0, inoptimal_range_ph)), (min_ph + 1)) //Always ensure we've a window of 1
-		determin_ph_range = inoptimal_range_ph
+		optimal_ph_min = min_ph + rand(0, suboptimal_range_ph)
+		optimal_ph_max = max((max_ph + rand(0, suboptimal_range_ph)), (min_ph + 1)) //Always ensure we've a window of 1
+		determin_ph_range = suboptimal_range_ph
 		H_ion_release = (rand(0, 25)/100)// 0 - 0.25
 
 	if(randomize_impurity_minimum)
@@ -128,9 +124,7 @@ GLOBAL_LIST_INIT(medicine_reagents, build_medicine_reagents())
 	if(randomize_impurity_reagents)
 		for(var/rid in required_reagents)
 			var/datum/reagent/R = GLOB.chemical_reagents_list[rid]
-			R.impure_chem = get_random_reagent_id()
 			R.inverse_chem = get_random_reagent_id()
-			R.failed_chem = get_random_reagent_id()
 
 	if(randomize_results)
 		results = list()
@@ -150,7 +144,7 @@ GLOBAL_LIST_INIT(medicine_reagents, build_medicine_reagents())
 
 		var/in_reagent_count = min(rand(min_input_reagents,max_input_reagents),remaining_possible_reagents.len)
 		if(in_reagent_count <= 0)
-			return FALSE
+			CRASH("SECRET CHEM: Couldn't generate reagents for [type]!")
 
 		required_reagents = list()
 		for(var/i in 1 to in_reagent_count)
@@ -190,6 +184,31 @@ GLOBAL_LIST_INIT(medicine_reagents, build_medicine_reagents())
 			return null
 		.[pathR] = textreagents[R]
 
+/datum/chemical_reaction/randomized/proc/SaveOldRecipe()
+	var/recipe_data = list()
+
+	recipe_data["timestamp"] = created
+	recipe_data["required_reagents"] = required_reagents
+	recipe_data["required_catalysts"] = required_catalysts
+
+	recipe_data["is_cold_recipe"] = is_cold_recipe
+	recipe_data["required_temp"] = required_temp
+	recipe_data["optimal_temp"] = optimal_temp
+	recipe_data["overheat_temp"] = overheat_temp
+	recipe_data["thermic_constant"] = thermic_constant
+
+	recipe_data["optimal_ph_min"] = optimal_ph_min
+	recipe_data["optimal_ph_max"] = optimal_ph_max
+	recipe_data["determin_ph_range"] = determin_ph_range
+	recipe_data["H_ion_release"] = H_ion_release
+
+	recipe_data["purity_min"] = purity_min
+
+	recipe_data["results"] = results
+	recipe_data["required_container"] = required_container
+
+	return recipe_data
+
 /datum/chemical_reaction/randomized/proc/LoadOldRecipe(recipe_data)
 	created = text2num(recipe_data["timestamp"])
 
@@ -197,6 +216,9 @@ GLOBAL_LIST_INIT(medicine_reagents, build_medicine_reagents())
 	if(!req_reag)
 		return FALSE
 	required_reagents = req_reag
+
+	if (required_reagents.len == 0)
+		return FALSE
 
 	var/req_catalysts = unwrap_reagent_list(recipe_data["required_catalysts"])
 	if(!req_catalysts)
@@ -232,7 +254,7 @@ GLOBAL_LIST_INIT(medicine_reagents, build_medicine_reagents())
 	persistent = TRUE
 	persistence_period = 7 //Reset every week
 	randomize_container = TRUE
-	possible_containers = list(/obj/item/reagent_containers/glass/bucket) //easy way to ensure no common conflicts
+	possible_containers = list(/obj/item/reagent_containers/cup/bucket) //easy way to ensure no common conflicts
 	randomize_req_temperature = TRUE
 	results = list(/datum/reagent/consumable/secretsauce=1)
 
@@ -258,11 +280,15 @@ GLOBAL_LIST_INIT(medicine_reagents, build_medicine_reagents())
 /datum/chemical_reaction/randomized/metalgen/GetPossibleReagents(kind)
 	switch(kind)
 		if(RNGCHEM_INPUT)
-			return GLOB.medicine_reagents
+			var/list/possible_ingredients = list()
+			for(var/datum/reagent/compound as anything in GLOB.medicine_reagents)
+				if(initial(compound.chemical_flags) & REAGENT_CAN_BE_SYNTHESIZED)
+					possible_ingredients += compound
+			return possible_ingredients
 	return ..()
 
 /obj/item/paper/secretrecipe
-	name = "old recipe"
+	name = "Old Recipe"
 
 	///List of possible recipes we could display
 	var/list/possible_recipes = list(/datum/chemical_reaction/randomized/secret_sauce, /datum/chemical_reaction/randomized/metalgen)
@@ -293,7 +319,8 @@ GLOBAL_LIST_INIT(medicine_reagents, build_medicine_reagents())
 /obj/item/paper/secretrecipe/proc/UpdateInfo()
 	var/datum/chemical_reaction/recipe = get_chemical_reaction(recipe_id)
 	if(!recipe)
-		info = "This recipe is illegible."
+		add_raw_text("This recipe is illegible.")
+		update_appearance()
 		return
 	var/list/dat = list("<ul>")
 	for(var/rid in recipe.required_reagents)
@@ -318,9 +345,9 @@ GLOBAL_LIST_INIT(medicine_reagents, build_medicine_reagents())
 			dat += " <li>heating it above [recipe.required_temp] degrees"
 			dat += " but not above [recipe.overheat_temp] degrees"
 		if(recipe.thermic_constant > 0)
-			dat += "<li> taking care of it's exothermic nature</li>"
+			dat += "<li> taking care of its exothermic nature</li>"
 		else if(recipe.thermic_constant < 0)
-			dat += "<li> taking care of it's endothermic nature</li>"
+			dat += "<li> taking care of its endothermic nature</li>"
 	var/datum/chemical_reaction/randomized/random_recipe = recipe
 	if(random_recipe)
 		if(random_recipe.randomize_req_ph)
@@ -329,10 +356,7 @@ GLOBAL_LIST_INIT(medicine_reagents, build_medicine_reagents())
 			dat += "<li> and your purity above [recipe.purity_min]</li>"
 	dat += "</ul>"
 	dat += "."
-	info = dat.Join("")
+	add_raw_text(dat.Join(""))
 	update_appearance()
 
 #undef VALID_RANDOM_RECIPE_REAGENT
-#undef RNGCHEM_INPUT
-#undef RNGCHEM_CATALYSTS
-#undef RNGCHEM_OUTPUT

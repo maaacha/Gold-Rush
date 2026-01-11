@@ -1,22 +1,22 @@
-
 // ~wound damage/rolling defines
-//MOJAVE EDIT CHANGE BEGIN
 /// the cornerstone of the wound threshold system, your base wound roll for any attack is rand(1, damage^this), after armor reduces said damage. See [/obj/item/bodypart/proc/check_wounding]
-#define WOUND_DAMAGE_EXPONENT 1.28 //TG original value is 1.4
-/// any damage dealt over this is ignored for damage rolls unless the target has the frail quirk (35^1.4=145, for reference)
-#define WOUND_MAX_CONSIDERED_DAMAGE 50 //TG original value is 35
+#define WOUND_DAMAGE_EXPONENT 1.4
+/// any damage dealt over this is ignored for damage rolls unless the target has the frail quirk (25^1.4=91, for reference). Does not apply if the mob has TRAIT_BLOODY_MESS.
+/// This is further affected by TRAIT_EASILY_WOUNDED increasing the max considered damage (before applying the exponent) by 50%, and TRAIT_HARDLY_WOUNDED reducing it by 50%.
+#define WOUND_MAX_CONSIDERED_DAMAGE 25
 /// an attack must do this much damage after armor in order to roll for being a wound (so pressure damage/being on fire doesn't proc it)
-#define WOUND_MINIMUM_DAMAGE 5 //Unchanged from TG
+#define WOUND_MINIMUM_DAMAGE 5
 /// an attack must do this much damage after armor in order to be eliigible to dismember a suitably mushed bodypart
-#define DISMEMBER_MINIMUM_DAMAGE 20 //TG original value is 10
-/// If an attack rolls this high with their wound (including mods), we try to outright dismember the limb. Note 250 is high enough that with a perfect max roll of 145 (see max cons'd damage), you'd need +100 in mods to do this
-#define WOUND_DISMEMBER_OUTRIGHT_THRESH 225 //TG original value is 250
+#define DISMEMBER_MINIMUM_DAMAGE 10
+/// If an attack rolls this high with their wound (including mods), we try to outright dismember the limb. Note 250 is high enough that with a perfect max roll of 90 (see max cons'd damage), you'd need +60 in mods to do this
+#define WOUND_DISMEMBER_OUTRIGHT_THRESH 150
 /// set wound_bonus on an item or attack to this to disable checking wounding for the attack
-#define CANT_WOUND -100 //Unchanged from TG
-//MOJAVE EDIT CHANGE END
+#define CANT_WOUND -100
+
 /// If there are multiple possible and valid wounds for the same type and severity, weight will be used to pick among them. See _wound_pregen_data.dm for more details
 /// This is used in pick_weight, so use integers
 #define WOUND_DEFAULT_WEIGHT 50
+
 // ~wound severities
 /// for jokey/meme wounds like stubbed toe, no standard messages/sounds or second winds
 #define WOUND_SEVERITY_TRIVIAL 0
@@ -25,6 +25,12 @@
 #define WOUND_SEVERITY_CRITICAL 3
 /// outright dismemberment of limb
 #define WOUND_SEVERITY_LOSS 4
+
+// how much blood the limb needs to be losing per tick (not counting laying down/self grasping modifiers) to get the different bleed icons
+#define BLEED_OVERLAY_LOW 0.5
+#define BLEED_OVERLAY_MED 1.5
+#define BLEED_OVERLAY_GUSH 3.25
+
 /// A "chronological" list of wound severities, starting at the least severe.
 GLOBAL_LIST_INIT(wound_severities_chronological, list(
 	"[WOUND_SEVERITY_TRIVIAL]",
@@ -42,8 +48,10 @@ GLOBAL_LIST_INIT(wound_severities_chronological, list(
 #define WOUND_PIERCE "wound_pierce"
 /// any concentrated burn attack (lasers really). rolls for burning wounds
 #define WOUND_BURN "wound_burn"
+
 /// Mainly a define used for wound_pregen_data, if a pregen data instance expects this, it will accept any and all wound types, even none at all
 #define WOUND_ALL "wound_all"
+
 
 // ~determination second wind defines
 // How much determination reagent to add each time someone gains a new wound in [/datum/wound/proc/second_wind]
@@ -70,28 +78,32 @@ GLOBAL_LIST_INIT(wound_severities_chronological, list(
 #define BIO_BONE (1<<0)
 /// Has flesh - allows the victim to suffer fleshy slash pierce and burn wounds
 #define BIO_FLESH (1<<1)
+/// Has metal - allows the victim to suffer robotic blunt and burn wounds
+#define BIO_METAL (1<<2)
+/// Has wood - should probably be able to catch on fire, or something
+#define BIO_WOOD (1<<3)
+/// Is wired internally - allows the victim to suffer electrical wounds (robotic T1-T3 slash/pierce)
+#define BIO_WIRED (1<<4)
+/// Has bloodflow - can suffer bleeding wounds and can bleed
+#define BIO_BLOODED (1<<5)
+/// Is connected by a joint - can suffer T1 bone blunt wounds (dislocation)
+#define BIO_JOINTED (1<<6)
+/// Skin is covered in thick chitin and is resistant to cutting
+#define BIO_CHITIN (1<<7)
+/// Robotic - can suffer all metal/wired wounds, such as: UNIMPLEMENTED PLEASE UPDATE ONCE SYNTH WOUNDS 9/5/2023 ~Niko
+#define BIO_ROBOTIC (BIO_METAL|BIO_WIRED)
 /// Has flesh and bone - See BIO_BONE and BIO_FLESH
 #define BIO_FLESH_BONE (BIO_BONE|BIO_FLESH)
 /// Standard humanoid - can bleed and suffer all flesh/bone wounds, such as: T1-3 slash/pierce/burn/blunt, except dislocations. Think human heads/chests
 #define BIO_STANDARD_UNJOINTED (BIO_FLESH_BONE|BIO_BLOODED)
 /// Standard humanoid limbs - can bleed and suffer all flesh/bone wounds, such as: T1-3 slash/pierce/burn/blunt. Can also bleed, and be dislocated. Think human arms and legs
 #define BIO_STANDARD_JOINTED (BIO_STANDARD_UNJOINTED|BIO_JOINTED)
-/// Has metal - allows the victim to suffer robotic blunt and burn wounds
-#define BIO_METAL (1<<2)
-/// Is wired internally - allows the victim to suffer electrical wounds (robotic T1-T3 slash/pierce)
-#define BIO_WIRED (1<<3)
-/// Robotic - can suffer all metal/wired wounds
-#define BIO_ROBOTIC (BIO_METAL|BIO_WIRED)
-/// Has bloodflow - can suffer bleeding wounds and can bleed
-#define BIO_BLOODED (1<<4)
-/// Is connected by a joint - can suffer T1 bone blunt wounds (dislocation)
-#define BIO_JOINTED (1<<5)
-/// Standard humanoid - can suffer all flesh wounds, such as: T1-3 slash/pierce/burn/blunt. Can also bleed
-#define BIO_STANDARD (BIO_FLESH_BONE|BIO_BLOODED)
+/// Xenomorph limbs (xenos are immune to wounds anyhow)
+#define BIO_STANDARD_ALIEN (BIO_CHITIN|BIO_BONE|BIO_BLOODED|BIO_JOINTED)
 
 // "Where" a specific biostate is within a given limb
 // Interior is hard shit, the last line, shit like bones
-// Exterior is soft shit, targetted by slashes and pierces (usually), protects exterior
+// Exterior is soft shit, targeted by slashes and pierces (usually), protects exterior
 // A limb needs both mangled interior and exterior to be dismembered, but slash/pierce must mangle exterior to attack the interior
 // Not having exterior/interior counts as mangled exterior/interior for the purposes of dismemberment
 /// The given biostate is on the "interior" of the limb - hard shit, protected by exterior
@@ -109,6 +121,7 @@ GLOBAL_LIST_INIT(bio_state_anatomy, list(
 	"[BIO_METAL]" = ANATOMY_INTERIOR,
 	"[BIO_FLESH]" = ANATOMY_EXTERIOR,
 	"[BIO_BONE]" = ANATOMY_INTERIOR,
+	"[BIO_CHITIN]" = ANATOMY_EXTERIOR,
 ))
 
 // Wound series
@@ -125,6 +138,8 @@ GLOBAL_LIST_INIT(bio_state_anatomy, list(
 #define WOUND_SERIES_FLESH_PUNCTURE_BLEED "wound_series_flesh_puncture_bleed"
 /// Generic loss wounds. See loss.dm
 #define WOUND_SERIES_LOSS_BASIC "wound_series_loss_basic"
+/// Cranial fissure wound.
+#define WOUND_SERIES_CRANIAL_FISSURE "wound_series_cranial_fissure"
 
 /// A assoc list of (wound typepath -> wound_pregen_data instance). Every wound should have a pregen data.
 GLOBAL_LIST_INIT_TYPED(all_wound_pregen_data, /datum/wound_pregen_data, generate_wound_static_data())
@@ -205,7 +220,7 @@ GLOBAL_LIST_INIT(wounding_types_to_series, list(
 	WOUND_BURN = list(
 		WOUND_SERIES_FLESH_BURN_BASIC,
 	),
-	WOUND_PUNCTURE = list(
+	WOUND_PIERCE = list(
 		WOUND_SERIES_FLESH_PUNCTURE_BLEED
 	),
 ))
@@ -227,7 +242,7 @@ GLOBAL_LIST_INIT(wounding_types_to_series, list(
  * severity_max to the highest wound you're willing to tolerate, and severity_pick_mode to WOUND_PICK_LOWEST_SEVERITY.
  *
  * Args:
- * * list/wounding_types: A list of wounding_types. Only wounds that accept these wound types will be considered.
+ * * wounding_type: Wounding type wounds of which we should be searching for
  * * obj/item/bodypart/part: The limb we are considering. Extremely important for biostates.
  * * severity_min: The minimum wound severity we will search for.
  * * severity_max = severity_min: The maximum wound severity we will search for.
@@ -239,25 +254,23 @@ GLOBAL_LIST_INIT(wounding_types_to_series, list(
  * Returns:
  * A randomly picked wound typepath meeting all the above criteria and being applicable to the part's biotype - or null if there were none.
  */
-/proc/get_corresponding_wound_type(list/wounding_types, obj/item/bodypart/part, severity_min, severity_max = severity_min, severity_pick_mode = WOUND_PICK_HIGHEST_SEVERITY, random_roll = TRUE, duplicates_allowed = FALSE, care_about_existing_wounds = TRUE)
+/proc/get_corresponding_wound_type(wounding_type, obj/item/bodypart/part, severity_min, severity_max = severity_min, severity_pick_mode = WOUND_PICK_HIGHEST_SEVERITY, random_roll = TRUE, duplicates_allowed = FALSE, care_about_existing_wounds = TRUE)
 	RETURN_TYPE(/datum/wound) // note that just because its set to return this doesnt mean its non-nullable
 
-	var/list/wounding_type_list = list()
-	for (var/wounding_type as anything in wounding_types)
-		wounding_type_list += GLOB.wounding_types_to_series[wounding_type]
+	var/list/wounding_type_list = GLOB.wounding_types_to_series[wounding_type]
 	if (!length(wounding_type_list))
 		return null
 
 	var/list/datum/wound/paths_to_pick_from = list()
-	for (var/series as anything in shuffle(wounding_type_list))
+	for (var/series in shuffle(wounding_type_list))
 		var/list/severity_list = GLOB.wound_series_collections[series]
 		if (!length(severity_list))
 			continue
 
 		var/picked_severity
-		for (var/severity_text as anything in shuffle(GLOB.wound_severities_chronological))
+		for (var/severity_text in shuffle(GLOB.wound_severities_chronological))
 			var/severity = text2num(severity_text)
-			if (severity > severity_min || severity < severity_max)
+			if (!ISINRANGE(severity, severity_min, severity_max))
 				continue
 
 			if (isnull(picked_severity) || ((severity_pick_mode == WOUND_PICK_HIGHEST_SEVERITY && severity > picked_severity) || (severity_pick_mode == WOUND_PICK_LOWEST_SEVERITY && severity < picked_severity)))
@@ -269,7 +282,7 @@ GLOBAL_LIST_INIT(wounding_types_to_series, list(
 
 		for (var/datum/wound/iterated_path as anything in wound_typepaths)
 			var/datum/wound_pregen_data/pregen_data = GLOB.all_wound_pregen_data[iterated_path]
-			if (pregen_data.can_be_applied_to(part, wounding_types, random_roll = random_roll, duplicates_allowed = duplicates_allowed, care_about_existing_wounds = care_about_existing_wounds))
+			if (pregen_data.can_be_applied_to(part, wounding_type, random_roll = random_roll, duplicates_allowed = duplicates_allowed, care_about_existing_wounds = care_about_existing_wounds))
 				paths_to_pick_from[iterated_path] = wound_typepaths[iterated_path]
 
 	return pick_weight(paths_to_pick_from) // we found our winners!
@@ -279,7 +292,6 @@ GLOBAL_LIST_INIT(biotypes_to_scar_file, list(
 	"[BIO_FLESH]" = FLESH_SCAR_FILE,
 	"[BIO_BONE]" = BONE_SCAR_FILE
 ))
-
 
 // ~burn wound infection defines
 // Thresholds for infection for burn wounds, once infestation hits each threshold, things get steadily worse
@@ -297,8 +309,8 @@ GLOBAL_LIST_INIT(biotypes_to_scar_file, list(
 // ~random wound balance defines
 /// how quickly sanitization removes infestation and decays per second
 #define WOUND_BURN_SANITIZATION_RATE 0.075
-/// how much blood you can lose per tick per slash max.
-#define WOUND_SLASH_MAX_BLOODFLOW 4.5
+/// how much blood you can lose per tick per wound max.
+#define WOUND_MAX_BLOODFLOW 4.5
 /// further slash attacks on a bodypart with a slash wound have their blood_flow further increased by damage * this (10 damage slash adds .25 flow)
 #define WOUND_SLASH_DAMAGE_FLOW_COEFF 0.025
 /// if we suffer a bone wound to the head that creates brain traumas, the timer for the trauma cycle is +/- by this percent (0-100)
@@ -324,10 +336,8 @@ GLOBAL_LIST_INIT(biotypes_to_scar_file, list(
 #define MANGLES_INTERIOR (1<<1)
 /// If this wound marks the limb as being allowed to have gauze applied
 #define ACCEPTS_GAUZE (1<<2)
-/// If this wound marks the limb as being allowed to have splints applied
-#define ACCEPTS_SPLINT (1<<3) // MOJAVE SUN EDIT
 /// If this wound allows the victim to grasp it
-#define CAN_BE_GRASPED (1<<4)
+#define CAN_BE_GRASPED (1<<3)
 
 // ~scar persistence defines
 // The following are the order placements for persistent scar save formats
@@ -354,12 +364,7 @@ GLOBAL_LIST_INIT(biotypes_to_scar_file, list(
 #define SCAR_CURRENT_VERSION 4
 /// how many scar slots, per character slot, we have to cycle through for persistent scarring, if enabled in character prefs
 #define PERSISTENT_SCAR_SLOTS 3
-// MOJAVE SUN EDIT BEGIN
-/// When a wound is staining the gauze with blood
-#define GAUZE_STAIN_BLOOD 1
-/// When a wound is staining the gauze with pus
-#define GAUZE_STAIN_PUS 2
-// MOJAVE SUN EDIT END
+
 // ~blood_flow rates of change, these are used by [/datum/wound/proc/get_bleed_rate_of_change] from [/mob/living/carbon/proc/bleed_warn] to let the player know if their bleeding is getting better/worse/the same
 /// Our wound is clotting and will eventually stop bleeding if this continues
 #define BLOOD_FLOW_DECREASING -1

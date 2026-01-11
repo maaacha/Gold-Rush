@@ -22,9 +22,9 @@
 	var/datum/outfit/outfit
 	// How long until we respawn them after their death.
 	var/respawn_time = 50
-	var/respawn_sound = 'sound/magic/staff_animation.ogg'
+	var/respawn_sound = 'sound/effects/magic/staff_animation.ogg'
 
-/obj/structure/life_candle/ComponentInitialize()
+/obj/structure/life_candle/Initialize(mapload)
 	. = ..()
 	AddElement(/datum/element/movetype_handler)
 
@@ -89,8 +89,7 @@
 		mind.transfer_to(body)
 	else
 		body.forceMove(T)
-		body.revive(full_heal = TRUE, admin_revive = TRUE)
-	mind.grab_ghost(TRUE)
+		body.revive(ADMIN_HEAL_ALL, force_grab_ghost = TRUE)
 	body.flash_act()
 
 	if(ishuman(body) && istype(outfit))

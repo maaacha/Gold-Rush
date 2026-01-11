@@ -34,7 +34,9 @@
 		/obj/item/organ/heart/gland/slime = 4,
 		/obj/item/organ/heart/gland/trauma = 4,
 		/obj/item/organ/heart/gland/electric = 3,
-		/obj/item/organ/regenerative_core = 2,
+		/obj/item/organ/monster_core/regenerative_core = 2,
+		/obj/item/organ/monster_core/rush_gland = 2,
+		/obj/item/organ/monster_core/brimdust_sac = 2,
 		/obj/item/organ/heart/gland/ventcrawling = 1,
 		/obj/item/organ/body_egg/alien_embryo = 1,
 	)
@@ -105,32 +107,32 @@
 		/obj/item/cautery/alien,
 	)
 
-/obj/effect/spawner/random/medical/firstaid_rare
-	name = "rare firstaid kit spawner"
-	icon_state = "firstaid"
+/obj/effect/spawner/random/medical/medkit_rare
+	name = "rare medkit spawner"
+	icon_state = "medkit"
 	loot = list(
-		/obj/item/storage/firstaid/emergency,
-		/obj/item/storage/firstaid/medical,
-		/obj/item/storage/firstaid/advanced,
+		/obj/item/storage/medkit/emergency,
+		/obj/item/storage/medkit/surgery,
+		/obj/item/storage/medkit/advanced,
 	)
 
-/obj/effect/spawner/random/medical/firstaid
-	name = "firstaid kit spawner"
-	icon_state = "firstaid"
+/obj/effect/spawner/random/medical/medkit
+	name = "medkit spawner"
+	icon_state = "medkit"
 	loot = list(
-		/obj/item/storage/firstaid/regular = 10,
-		/obj/item/storage/firstaid/o2 = 10,
-		/obj/item/storage/firstaid/fire = 10,
-		/obj/item/storage/firstaid/brute = 10,
-		/obj/item/storage/firstaid/toxin = 10,
-		/obj/effect/spawner/random/medical/firstaid_rare = 1,
+		/obj/item/storage/medkit/regular = 10,
+		/obj/item/storage/medkit/o2 = 10,
+		/obj/item/storage/medkit/fire = 10,
+		/obj/item/storage/medkit/brute = 10,
+		/obj/item/storage/medkit/toxin = 10,
+		/obj/effect/spawner/random/medical/medkit_rare = 1,
 	)
 
 /obj/effect/spawner/random/medical/patient_stretcher
 	name = "patient stretcher spawner"
 	icon_state = "rollerbed"
 	loot = list(
-		/obj/structure/bed/roller,
+		/obj/structure/bed/medical/emergency,
 		/obj/vehicle/ridden/wheelchair,
 	)
 

@@ -16,18 +16,17 @@
 	var/last_progress = 0
 	///Variable to ensure smooth visual stacking on multiple progress bars.
 	var/listindex = 0
-	//MOJAVE SUN EDIT START - Interactive Progressbar
-	///An optional, clickable object that can be used to speed up progress bars
-	var/obj/booster
-	///How much bonus progress we've accured from a linked progress booster
-	var/bonus_progress = 0
-	//MOJAVE SUN EDIT END - Interactive Progressbar
+	///The type of our last value for bar_loc, for debugging
+	var/location_type
+	///Where to draw the progress bar above the icon
+	var/offset_y
 
-
-/datum/progressbar/New(mob/User, goal_number, atom/target, bonus_time, focus_sound, type) //MOJAVE SUN EDIT - Interactive Progressbar
+/datum/progressbar/New(mob/User, goal_number, atom/target, starting_amount)
 	. = ..()
 	if (!istype(target))
-		EXCEPTION("Invalid target given")
+		stack_trace("Invalid target [target] passed in")
+		qdel(src)
+		return
 	if(QDELETED(User) || !istype(User))
 		stack_trace("/datum/progressbar created with [isnull(User) ? "null" : "invalid"] user")
 		qdel(src)
@@ -38,8 +37,14 @@
 		return
 	goal = goal_number
 	bar_loc = target
-	bar = image('icons/effects/progessbar.dmi', bar_loc, "prog_bar_0")
-	bar.plane = ABOVE_HUD_PLANE
+	location_type = bar_loc.type
+
+	var/list/icon_offsets = target.get_oversized_icon_offsets()
+	var/offset_x = icon_offsets["x"]
+	offset_y = icon_offsets["y"]
+
+	bar = image('icons/effects/progressbar.dmi', bar_loc, "prog_bar_0", pixel_x = offset_x)
+	SET_PLANE_EXPLICIT(bar, ABOVE_HUD_PLANE, User)
 	bar.appearance_flags = APPEARANCE_UI_IGNORE_ALPHA
 	user = User
 
@@ -50,26 +55,13 @@
 	if(user.client)
 		user_client = user.client
 		add_prog_bar_image_to_client()
-	//MOJAVE SUN EDIT START - Interactive Progressbar
-	if(bonus_time)
-		if(isitem(target))
-			var/obj/item/T = target
-			if((T.item_flags & IN_INVENTORY) || (T.loc && SEND_SIGNAL(T.loc, COMSIG_CONTAINS_STORAGE)))
-				booster = new type(user.loc, user, src, bonus_time, focus_sound)
-			else
-				booster = new type(target.loc, user, src, bonus_time, focus_sound)
-			if(type == /obj/effect/hallucination/simple/progress_focus/skillcheck) //so spinnygame can be above the object its on
-				var/obj/effect/hallucination/simple/progress_focus/TA = booster
-				TA.build_extra_effect(target)
-				booster.pixel_x = target.pixel_x
-				booster.pixel_y = target.pixel_y + 40
-		else
-			booster = new type(get_turf(target), user, src, bonus_time, focus_sound)
-	//MOJAVE SUN EDIT END - Interactive Progressbar
-	RegisterSignal(user, COMSIG_PARENT_QDELETING, PROC_REF(on_user_delete))
+
+	RegisterSignal(user, COMSIG_QDELETING, PROC_REF(on_user_delete))
 	RegisterSignal(user, COMSIG_MOB_LOGOUT, PROC_REF(clean_user_client))
 	RegisterSignal(user, COMSIG_MOB_LOGIN, PROC_REF(on_user_login))
 
+	if(starting_amount)
+		update(starting_amount)
 
 /datum/progressbar/Destroy()
 	if(user)
@@ -79,9 +71,9 @@
 				continue
 			progress_bar.listindex--
 
-			progress_bar.bar.pixel_y = 32 + (PROGRESSBAR_HEIGHT * (progress_bar.listindex - 1))
-			var/dist_to_travel = 32 + (PROGRESSBAR_HEIGHT * (progress_bar.listindex - 1)) - PROGRESSBAR_HEIGHT
-			animate(progress_bar.bar, pixel_y = dist_to_travel, time = PROGRESSBAR_ANIMATION_TIME, easing = SINE_EASING)
+			progress_bar.bar.pixel_z = ICON_SIZE_Y + offset_y + (PROGRESSBAR_HEIGHT * (progress_bar.listindex - 1))
+			var/dist_to_travel = ICON_SIZE_Y + offset_y + (PROGRESSBAR_HEIGHT * (progress_bar.listindex - 1)) - PROGRESSBAR_HEIGHT
+			animate(progress_bar.bar, pixel_z = dist_to_travel, time = PROGRESSBAR_ANIMATION_TIME, easing = SINE_EASING)
 
 		LAZYREMOVEASSOC(user.progressbars, bar_loc, src)
 		user = null
@@ -90,9 +82,7 @@
 		clean_user_client()
 
 	bar_loc = null
-
-	if(bar)
-		QDEL_NULL(bar)
+	bar = null
 
 	return ..()
 
@@ -132,38 +122,37 @@
 
 ///Adds a smoothly-appearing progress bar image to the player's screen.
 /datum/progressbar/proc/add_prog_bar_image_to_client()
-	bar.pixel_y = 0
+	bar.pixel_z = 0
 	bar.alpha = 0
 	user_client.images += bar
-	animate(bar, pixel_y = 32 + (PROGRESSBAR_HEIGHT * (listindex - 1)), alpha = 255, time = PROGRESSBAR_ANIMATION_TIME, easing = SINE_EASING)
+	animate(bar, pixel_z = ICON_SIZE_Y + offset_y + (PROGRESSBAR_HEIGHT * (listindex - 1)), alpha = 255, time = PROGRESSBAR_ANIMATION_TIME, easing = SINE_EASING)
 
 
 ///Updates the progress bar image visually.
 /datum/progressbar/proc/update(progress)
-	progress = clamp(progress + bonus_progress, 0, goal) //MOJAVE SUN EDIT END - Interactive Progressbar
+	progress = clamp(progress, 0, goal)
 	if(progress == last_progress)
 		return
 	last_progress = progress
 	bar.icon_state = "prog_bar_[round(((progress / goal) * 100), 5)]"
 
-//MOJAVE SUN EDIT START - Interactive Progressbar
-/datum/progressbar/proc/boost_progress(amount)
-	bonus_progress += amount
-//MOJAVE SUN EDIT END - Interactive Progressbar
 
 ///Called on progress end, be it successful or a failure. Wraps up things to delete the datum and bar.
 /datum/progressbar/proc/end_progress()
-	//MOJAVE SUN EDIT START - Interactive Progressbar
-	if(last_progress < goal)
+	if(last_progress != goal)
 		bar.icon_state = "[bar.icon_state]_fail"
-	if(booster)
-		QDEL_NULL(booster)
-	//MOJAVE SUN EDIT END - Interactive Progressbar
 
 	animate(bar, alpha = 0, time = PROGRESSBAR_ANIMATION_TIME)
 
 	QDEL_IN(src, PROGRESSBAR_ANIMATION_TIME)
 
+///Progress bars are very generic, and what hangs a ref to them depends heavily on the context in which they're used
+///So let's make hunting harddels easier yeah?
+/datum/progressbar/dump_harddel_info()
+	if(harddel_deets_dumped)
+		return
+	harddel_deets_dumped = TRUE
+	return "Owner's type: [location_type]"
 
 #undef PROGRESSBAR_ANIMATION_TIME
 #undef PROGRESSBAR_HEIGHT

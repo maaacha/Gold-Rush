@@ -1,13 +1,4 @@
 /**
- * A screen object, which acts as a container for turfs and other things
- * you want to show on the map, which you usually attach to "vis_contents".
- */
-/atom/movable/screen/map_view
-	// Map view has to be on the lowest plane to enable proper lighting
-	layer = GAME_PLANE
-	plane = GAME_PLANE
-
-/**
  * A generic background object.
  * It is also implicitly used to allocate a rectangle on the map, which will
  * be used for auto-scaling the map.
@@ -28,17 +19,6 @@
 /atom/movable/screen/proc/set_position(x, y, px = 0, py = 0)
 	if(assigned_map)
 		screen_loc = "[assigned_map]:[x]:[px],[y]:[py]"
-		ASYNC
-			// HACK: This fixes the character creator in 516 being small and relying on other byondui things (like cameras) to open in order to update and refresh.
-			// This also will fix the camera console screen being offset, Gateway, and admin pod panel.
-			// Adding 100 then setting it back seemed to do the trick!
-			// Why the fuck does this work? This is some byond bug and I honestly have no fucking clue why this works.
-			// I don't think plane master will be affected, I hope.
-			// We're stuck in the belly of this awful machine.
-			sleep(0.1 SECONDS) // If it's too fast, it has a chance to fail? Idk. This seems like a good number.
-			screen_loc = "[assigned_map]:[x+100]:[px],[y+100]:[py]"
-			sleep(0.1 SECONDS)
-			screen_loc = "[assigned_map]:[x]:[px],[y]:[py]"
 	else
 		screen_loc = "[x]:[px],[y]:[py]"
 
@@ -95,9 +75,10 @@
  *
  * Returns a map name.
  */
-/client/proc/create_popup(name, ratiox = 100, ratioy = 100)
+/client/proc/create_popup(name, title, ratiox = 100, ratioy = 100)
 	winclone(src, "popupwindow", name)
 	var/list/winparams = list()
+	winparams["title"] = title
 	winparams["size"] = "[ratiox]x[ratioy]"
 	winparams["on-close"] = "handle-popup-close [name]"
 	winset(src, "[name]", list2params(winparams))
@@ -120,13 +101,13 @@
  * Width and height are multiplied by 64 by default.
  */
 /client/proc/setup_popup(popup_name, width = 9, height = 9, \
-		tilesize = 2, bg_icon)
+		tilesize = 2, title, bg_icon)
 	if(!popup_name)
 		return
 	clear_map("[popup_name]_map")
-	var/x_value = world.icon_size * tilesize * width
-	var/y_value = world.icon_size * tilesize * height
-	var/map_name = create_popup(popup_name, x_value, y_value)
+	var/x_value = ICON_SIZE_X * tilesize * width
+	var/y_value = ICON_SIZE_Y * tilesize * height
+	var/map_name = create_popup(popup_name, title, x_value, y_value)
 
 	var/atom/movable/screen/background/background = new
 	background.assigned_map = map_name
@@ -150,3 +131,4 @@
 /client/verb/handle_popup_close(window_id as text)
 	set hidden = TRUE
 	clear_map("[window_id]_map")
+	SEND_SIGNAL(src, COMSIG_POPUP_CLEARED, window_id)

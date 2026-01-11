@@ -1,18 +1,18 @@
 import { binaryInsertWith } from 'common/collections';
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import { useBackend } from 'tgui/backend';
+import { Box, Dropdown, Flex } from 'tgui-core/components';
 import { classes } from 'tgui-core/react';
 
-import { useBackend } from '../../../../../backend';
-import { Box, Dropdown, Flex } from '../../../../../components';
-import { PreferencesMenuData } from '../../../data';
+import type { PreferencesMenuData } from '../../../types';
 import {
   CheckboxInput,
-  FeatureChoiced,
-  FeatureChoicedServerData,
-  FeatureDropdownInput,
-  FeatureToggle,
-  FeatureValueProps,
+  type FeatureChoiced,
+  type FeatureChoicedServerData,
+  type FeatureToggle,
+  type FeatureValueProps,
 } from '../base';
+import { FeatureDropdownInput } from '../dropdowns';
 
 export const ghost_accs: FeatureChoiced = {
   name: 'Ghost accessories',
@@ -26,14 +26,14 @@ type GhostForm = {
   value: string;
 };
 
-const insertGhostForm = (collection: GhostForm[], value: GhostForm) =>
-  binaryInsertWith(collection, value, ({ value }) => value);
+function insertGhostForm(collection: GhostForm[], value: GhostForm) {
+  return binaryInsertWith(collection, value, ({ value }) => value);
+}
 
-const GhostFormInput = (
+function GhostFormInput(
   props: FeatureValueProps<string, string, FeatureChoicedServerData>,
-  context,
-) => {
-  const { data } = useBackend<PreferencesMenuData>(context);
+) {
+  const { data } = useBackend<PreferencesMenuData>();
 
   const serverData = props.serverData;
   if (!serverData) {
@@ -81,15 +81,16 @@ const GhostFormInput = (
 
   return (
     <Dropdown
+      autoScroll={false}
       disabled={!data.content_unlocked}
       selected={props.value}
-      displayText={displayTexts[props.value]}
+      placeholder={displayTexts[props.value]}
       onSelected={props.handleSetValue}
       width="100%"
       options={options}
     />
   );
-};
+}
 
 export const ghost_form: FeatureChoiced = {
   name: 'Ghosts form',
@@ -114,9 +115,8 @@ export const ghost_orbit: FeatureChoiced = {
   `,
   component: (
     props: FeatureValueProps<string, string, FeatureChoicedServerData>,
-    context,
   ) => {
-    const { data } = useBackend<PreferencesMenuData>(context);
+    const { data } = useBackend<PreferencesMenuData>();
 
     return (
       <FeatureDropdownInput {...props} disabled={!data.content_unlocked} />
@@ -138,5 +138,17 @@ export const inquisitive_ghost: FeatureToggle = {
   name: 'Ghost inquisitiveness',
   category: 'GHOST',
   description: 'Clicking on something as a ghost will examine it.',
+  component: CheckboxInput,
+};
+
+export const ghost_roles: FeatureToggle = {
+  name: 'Get ghost roles',
+  category: 'GHOST',
+  description: `
+    If you de-select this, you will not get any ghost role pop-ups what-so-ever!
+    Every single type of these pop-ups WILL be muted for you when you are
+    ghosted. Very useful for those who find ghost roles or the
+    pop-ups annoying, use at your own peril.
+`,
   component: CheckboxInput,
 };

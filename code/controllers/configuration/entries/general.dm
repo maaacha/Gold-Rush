@@ -7,7 +7,7 @@
 	default = "Game Master"
 	protection = CONFIG_ENTRY_LOCKED
 
-/datum/config_entry/flag/auto_deadmin_players
+/datum/config_entry/flag/auto_deadmin_always
 	protection = CONFIG_ENTRY_LOCKED
 
 /datum/config_entry/number/auto_deadmin_timegate
@@ -18,6 +18,9 @@
 	protection = CONFIG_ENTRY_LOCKED
 
 /datum/config_entry/flag/auto_deadmin_heads
+	protection = CONFIG_ENTRY_LOCKED
+
+/datum/config_entry/flag/auto_deadmin_on_ready_or_latejoin
 	protection = CONFIG_ENTRY_LOCKED
 
 /datum/config_entry/flag/auto_deadmin_silicons
@@ -76,6 +79,9 @@
 /// log prayers
 /datum/config_entry/flag/log_prayer
 
+///Log Music Requests
+/datum/config_entry/flag/log_internet_request
+
 /// log silicons
 /datum/config_entry/flag/log_silicon
 
@@ -97,14 +103,14 @@
 /// log virology data
 /datum/config_entry/flag/log_virus
 
-/// log cloning actions.
-/datum/config_entry/flag/log_cloning
-
 /// log assets
 /datum/config_entry/flag/log_asset
 
 /// log voting
 /datum/config_entry/flag/log_vote
+
+/// log manual zone switching
+/datum/config_entry/flag/log_zone_switch
 
 /// log client whisper
 /datum/config_entry/flag/log_whisper
@@ -115,11 +121,15 @@
 /// log emotes
 /datum/config_entry/flag/log_emote
 
-/// log emotes
-/datum/config_entry/flag/log_subtle
+/// log ghost polling
+/datum/config_entry/flag/log_ghost_poll
+	default = TRUE
 
 /// log economy actions
 /datum/config_entry/flag/log_econ
+
+/// log traitor objectives
+/datum/config_entry/flag/log_traitor
 
 /// log admin chat messages
 /datum/config_entry/flag/log_adminchat
@@ -155,6 +165,10 @@
 /// logs all timers in buckets on automatic bucket reset (Useful for timer debugging)
 /datum/config_entry/flag/log_timers_on_bucket_reset
 
+/// Log human readable versions of json log entries
+/datum/config_entry/flag/log_as_human_readable
+	default = TRUE
+
 /// allows admins with relevant permissions to have their own ooc colour
 /datum/config_entry/flag/allow_admin_ooccolor
 
@@ -167,19 +181,25 @@
 /// allow votes to change map
 /datum/config_entry/flag/allow_vote_map
 
+/// the number of times we allow players to rock the vote
+/datum/config_entry/number/max_rocking_votes
+	default = 1
+	min_val = 1
+
 /// minimum time between voting sessions (deciseconds, 10 minute default)
 /datum/config_entry/number/vote_delay
-	default = 6000
+	default = 10 MINUTES
 	integer = FALSE
 	min_val = 0
 
 /// length of voting period (deciseconds, default 1 minute)
 /datum/config_entry/number/vote_period
-	default = 600
+	default = 1 MINUTES
 	integer = FALSE
 	min_val = 0
 
-/// vote does not default to nochange/norestart.
+/// If disabled, non-voters will automatically have their votes added to certain vote options
+/// (For example: restart votes will default to "no restart", map votes will default to their preferred map / default map, rocking the vote will default to "no")
 /datum/config_entry/flag/default_no_vote
 
 /// Prevents dead people from voting.
@@ -201,7 +221,7 @@
 		sync_validate = TRUE
 		var/datum/config_entry/number/ticklag/TL = config.entries_by_type[/datum/config_entry/number/ticklag]
 		if(!TL.sync_validate)
-			TL.ValidateAndSet(10 / config_entry_value)
+			TL.ValidateAndSet("[10 / config_entry_value]")
 		sync_validate = FALSE
 
 /datum/config_entry/number/ticklag
@@ -219,15 +239,11 @@
 		sync_validate = TRUE
 		var/datum/config_entry/number/fps/FPS = config.entries_by_type[/datum/config_entry/number/fps]
 		if(!FPS.sync_validate)
-			FPS.ValidateAndSet(10 / config_entry_value)
+			FPS.ValidateAndSet("[10 / config_entry_value]")
 		sync_validate = FALSE
 
 /datum/config_entry/flag/allow_holidays
 
-/datum/config_entry/number/tick_limit_mc_init //SSinitialization throttling
-	default = TICK_LIMIT_MC_INIT_DEFAULT
-	min_val = 0 //oranges warned us
-	integer = FALSE
 
 /datum/config_entry/flag/admin_legacy_system //Defines whether the server uses the legacy admin system with admins.txt or the SQL system
 	protection = CONFIG_ENTRY_LOCKED
@@ -246,15 +262,25 @@
 
 /datum/config_entry/string/hostedby
 
-/datum/config_entry/flag/norespawn
+/// Determines if a player can respawn after dying.
+/// 0 / RESPAWN_FLAG_DISABLED = Cannot respawn (default)
+/// 1 / RESPAWN_FLAG_FREE = Can respawn
+/// 2 / RESPAWN_FLAG_NEW_CHARACTER = Can respawn if choosing a different character
+/datum/config_entry/flag/allow_respawn
+	default = RESPAWN_FLAG_DISABLED
 
-/datum/config_entry/string/discordurl
+/datum/config_entry/flag/allow_respawn/ValidateAndSet(str_val)
+	if(!VASProcCallGuard(str_val))
+		return FALSE
+	var/val_as_num = text2num(str_val)
+	if(val_as_num in list(RESPAWN_FLAG_DISABLED, RESPAWN_FLAG_FREE, RESPAWN_FLAG_NEW_CHARACTER))
+		config_entry_value = val_as_num
+		return TRUE
+	return FALSE
 
-/datum/config_entry/string/servertagline
-
-/datum/config_entry/number/respawn_time
-	default = null
-	min_val = 0
+/// Determines how long (in deciseconds) before a player is allowed to respawn.
+/datum/config_entry/number/respawn_delay
+	default = 0 SECONDS
 
 /datum/config_entry/flag/usewhitelist
 
@@ -288,19 +314,24 @@
 
 /datum/config_entry/string/server
 
+/datum/config_entry/string/public_address
+
 /datum/config_entry/string/banappeals
 
 /datum/config_entry/string/wikiurl
-	default = "http://www.tgstation13.org/wiki"
+	default = "https://wiki.tgstation13.org"
 
 /datum/config_entry/string/forumurl
 	default = "http://tgstation13.org/phpBB/index.php"
 
 /datum/config_entry/string/rulesurl
-	default = "http://www.tgstation13.org/wiki/Rules"
+	default = "http://tgstation13.org/wiki/Rules"
 
 /datum/config_entry/string/githuburl
 	default = "https://www.github.com/tgstation/tgstation"
+
+/datum/config_entry/string/configurl
+	default = "https://github.com/tgstation-operations/server-config"
 
 /datum/config_entry/string/discordbotcommandprefix
 	default = "?"
@@ -357,7 +388,14 @@
 /datum/config_entry/string/invoke_youtubedl
 	protection = CONFIG_ENTRY_LOCKED | CONFIG_ENTRY_HIDDEN
 
+/datum/config_entry/flag/request_internet_sound
+
+/datum/config_entry/string/request_internet_allowed
+	protection = CONFIG_ENTRY_LOCKED
+
 /datum/config_entry/flag/show_irc_name
+
+/datum/config_entry/flag/no_default_techweb_link
 
 /datum/config_entry/flag/see_own_notes //Can players see their own admin notes
 
@@ -418,12 +456,13 @@
 
 /datum/config_entry/flag/irc_first_connection_alert // do we notify the irc channel when somebody is connecting for the first time?
 
-/datum/config_entry/flag/check_randomizer
+/datum/config_entry/string/ipintel_base
+	default = "check.getipintel.net"
 
 /datum/config_entry/string/ipintel_email
 
 /datum/config_entry/string/ipintel_email/ValidateAndSet(str_val)
-	return str_val != "ch@nge.me" && ..()
+	return str_val != "ch@nge.me" && (!length(str_val) || findtext(str_val, "@")) && ..()
 
 /datum/config_entry/number/ipintel_rating_bad
 	default = 1
@@ -431,18 +470,26 @@
 	min_val = 0
 	max_val = 1
 
-/datum/config_entry/number/ipintel_save_good
-	default = 12
-	integer = FALSE
+/datum/config_entry/flag/ipintel_reject_rate_limited
+	default = FALSE
+
+/datum/config_entry/flag/ipintel_reject_bad
+	default = FALSE
+
+/datum/config_entry/flag/ipintel_reject_unknown
+	default = FALSE
+
+/datum/config_entry/number/ipintel_rate_minute
+	default = 15
 	min_val = 0
 
-/datum/config_entry/number/ipintel_save_bad
-	default = 1
-	integer = FALSE
+/datum/config_entry/number/ipintel_cache_length
+	default = 7
 	min_val = 0
 
-/datum/config_entry/string/ipintel_domain
-	default = "check.getipintel.net"
+/datum/config_entry/number/ipintel_exempt_playtime_living
+	default = 5
+	min_val = 0
 
 /datum/config_entry/flag/aggressive_changelog
 
@@ -465,9 +512,22 @@
 
 /datum/config_entry/flag/preference_map_voting
 
+/// Allows players to export their own preferences as a JSON file. Left as a config toggle in case it needs to be turned off due to server-specific needs.
+/datum/config_entry/flag/forbid_preferences_export
+	default = FALSE
+
+/// The number of seconds a player must wait between preference export attempts.
+/datum/config_entry/number/seconds_cooldown_for_preferences_export
+	default = 10
+	min_val = 1
+
 /datum/config_entry/number/client_warn_version
 	default = null
 	min_val = 500
+
+/datum/config_entry/number/client_warn_build
+	default = null
+	min_val = 0
 
 /datum/config_entry/string/client_warn_message
 	default = "Your version of byond may have issues or be blocked from accessing this server in the future."
@@ -518,16 +578,26 @@
 	integer = FALSE
 
 /datum/config_entry/flag/irc_announce_new_game
-	deprecated_by = /datum/config_entry/string/chat_announce_new_game
+	deprecated_by = /datum/config_entry/str_list/channel_announce_new_game
 
 /datum/config_entry/flag/irc_announce_new_game/DeprecationUpdate(value)
 	return "" //default broadcast
 
 /datum/config_entry/string/chat_announce_new_game
-	default = null
+	deprecated_by = /datum/config_entry/str_list/channel_announce_new_game
 
-/datum/config_entry/string/chat_new_game_notifications
-	default = null
+/datum/config_entry/string/chat_announce_new_game/DeprecationUpdate(value)
+	return "" //default broadcast
+
+/datum/config_entry/str_list/channel_announce_new_game
+
+/datum/config_entry/str_list/channel_announce_end_game
+
+/datum/config_entry/str_list/chat_new_game_notifications
+
+/// validate ownership of admin flags for chat commands
+/datum/config_entry/flag/secure_chat_commands
+	default = FALSE
 
 /datum/config_entry/flag/debug_admin_hrefs
 
@@ -557,23 +627,24 @@
 
 /datum/config_entry/flag/resume_after_initializations/ValidateAndSet(str_val)
 	. = ..()
-	if(. && Master.current_runlevel)
+	if(. && MC_RUNNING())
 		world.sleep_offline = !config_entry_value
 
 /datum/config_entry/number/rounds_until_hard_restart
 	default = -1
 	min_val = 0
 
-/datum/config_entry/string/default_view
-	default = "15x15"
-
-/datum/config_entry/string/default_view_square
-	default = "15x15"
-
 /datum/config_entry/flag/log_pictures
 
 /datum/config_entry/flag/picture_logging_camera
 
+/datum/config_entry/number/roundstart_logout_report_time_average
+	default = 10 MINUTES
+	min_val = 0
+
+/datum/config_entry/number/roundstart_logout_report_time_variance
+	default = 3 MINUTES
+	min_val = 0
 
 /datum/config_entry/flag/reopen_roundstart_suicide_roles
 
@@ -585,6 +656,15 @@
 /datum/config_entry/flag/reopen_roundstart_suicide_roles_command_report
 
 /datum/config_entry/flag/auto_profile
+
+/datum/config_entry/number/profiler_interval
+	default = 300 SECONDS
+
+/datum/config_entry/number/drift_dump_threshold
+	default = 4 SECONDS
+
+/datum/config_entry/number/drift_profile_delay
+	default = 15 SECONDS
 
 /datum/config_entry/string/centcom_ban_db // URL for the CentCom Galactic Ban DB API
 
@@ -610,10 +690,15 @@
 /datum/config_entry/string/urgent_ahelp_message
 	default = "This ahelp is urgent!"
 
+/datum/config_entry/string/ahelp_message
+	default = ""
+
 /datum/config_entry/string/urgent_ahelp_user_prompt
 	default = "There are no admins currently on. Do not press the button below if your ahelp is a joke, a request or a question. Use it only for cases of obvious grief."
 
-/datum/config_entry/string/adminhelp_webhook_url
+/datum/config_entry/string/urgent_adminhelp_webhook_url
+
+/datum/config_entry/string/regular_adminhelp_webhook_url
 
 /datum/config_entry/string/adminhelp_webhook_pfp
 
@@ -623,6 +708,12 @@
 
 /datum/config_entry/flag/cache_assets
 	default = TRUE
+
+/datum/config_entry/flag/smart_cache_assets
+	default = TRUE
+
+/datum/config_entry/flag/save_spritesheets
+	default = FALSE
 
 /datum/config_entry/flag/station_name_in_hub_entry
 	default = FALSE
@@ -635,3 +726,74 @@
 /datum/config_entry/flag/forbid_all_profiling
 
 /datum/config_entry/flag/forbid_admin_profiling
+
+
+/datum/config_entry/flag/morgue_cadaver_disable_nonhumans
+	default = FALSE
+
+/datum/config_entry/number/morgue_cadaver_other_species_probability
+	default = 50
+
+/datum/config_entry/string/morgue_cadaver_override_species
+
+/datum/config_entry/flag/toast_notification_on_init
+
+/datum/config_entry/flag/config_errors_runtime
+	default = FALSE
+
+/datum/config_entry/number/upload_limit
+	default = 524288
+	min_val = 0
+
+/datum/config_entry/number/upload_limit_admin
+	default = 5242880
+	min_val = 0
+
+/// The minimum number of tallies a map vote entry can have.
+/datum/config_entry/number/map_vote_minimum_tallies
+	default = 1
+	min_val = 0
+	max_val = 50
+
+/// The flat amount all maps get by default
+/datum/config_entry/number/map_vote_flat_bonus
+	default = 5
+	min_val = 0
+	max_val = INFINITY
+
+/// The maximum number of tallies a map vote entry can have.
+/datum/config_entry/number/map_vote_maximum_tallies
+	default = 200
+	min_val = 0
+	max_val = INFINITY
+
+/// The number of tallies that are carried over between rounds.
+/datum/config_entry/number/map_vote_tally_carryover_percentage
+	default = 100
+	min_val = 0
+	max_val = 100
+
+/// If admins with +DEBUG can initialize byond-tracy midround.
+/datum/config_entry/flag/allow_tracy_start
+	protection = CONFIG_ENTRY_LOCKED
+
+/// If admins with +DEBUG can queue byond-tracy to run the next round.
+/datum/config_entry/flag/allow_tracy_queue
+	protection = CONFIG_ENTRY_LOCKED
+
+/**
+ * Tgui ui_act payloads larger than 2kb are split into chunks a maximum of 1kb in size.
+ * This flag represents the maximum chunk count the server is willing to receive.
+ */
+/datum/config_entry/number/tgui_max_chunk_count
+	default = 32
+
+// If set, enables the "Link forum account" OOC verb
+/datum/config_entry/string/forum_link_uri
+
+/datum/config_entry/flag/generate_assets_in_init
+	default = FALSE
+
+/datum/config_entry/number/minimum_ascension_time
+	default = 0 // 1 minute
+	min_val = 0

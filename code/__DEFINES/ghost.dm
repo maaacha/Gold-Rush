@@ -31,6 +31,8 @@
 /// The default ghost display selection when viewing other players
 #define GHOST_OTHERS_DEFAULT_OPTION GHOST_OTHERS_THEIR_SETTING
 
+/// A ghosts min view range that we won't allow them to go under by.
+#define GHOST_MIN_VIEW_RANGE 7
 /// A ghosts max view range if they are a BYOND guest or regular account
 #define GHOST_MAX_VIEW_RANGE_DEFAULT 10
 /// A ghosts max view range if they are a BYOND paid member account (P2W feature)
@@ -57,8 +59,21 @@
 /// Pictures taken by a camera will display ghosts and their orbits
 #define CAMERA_SEE_GHOSTS_ORBIT 2 // this doesn't do anything right now as of Jan 2022
 
-// MOJAVE SUN EDIT BEGIN
-/// Alpha of ghost appearances copying the original mob
-#define GHOST_COPY_ALPHA 127
-/// Maximum motion blur a ghost can accumulate in the x or y axis
-// MOJAVE SUN EDIT END
+
+#define GHOST_DATA_HUDS (1<<0)
+#define GHOST_VISION (1<<1)
+#define GHOST_HEALTH (1<<2)
+#define GHOST_CHEM (1<<3)
+#define GHOST_GAS (1<<4)
+/// Represents tray view. Not a real view flag, as tray is not persistent, but used as an identifier for one.
+#define GHOST_TRAY (1<<5)
+/// Repesents darkness level setting. Not a real view flag, as darkness level cycles through values, but used as an identifier for one.
+#define GHOST_DARKNESS_LEVEL (1<<6)
+
+#define ALL_GHOST_FLAGS list( \
+	GHOST_DATA_HUDS, \
+	GHOST_VISION, \
+	GHOST_HEALTH, \
+	GHOST_CHEM, \
+	GHOST_GAS, \
+)

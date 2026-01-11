@@ -5,7 +5,7 @@
 	required_limb_biostate = NONE
 	require_any_biostate = TRUE
 
-	required_wounding_types = list(WOUND_ALL)
+	required_wounding_type = WOUND_ALL
 
 	wound_series = WOUND_SERIES_LOSS_BASIC
 
@@ -40,16 +40,16 @@
 	else
 		occur_text = dismembered_part.get_dismember_message(wounding_type, outright)
 
-	var/msg = span_bolddanger("[victim]'s [dismembered_part.name] [occur_text]")
+	var/msg = span_bolddanger("[victim]'s [dismembered_part.plaintext_zone] [occur_text]")
 
-	victim.visible_message(msg, span_userdanger("Your [dismembered_part.name] [self_msg ? self_msg : occur_text]"))
+	victim.visible_message(msg, span_userdanger("Your [dismembered_part.plaintext_zone] [self_msg ? self_msg : occur_text]"))
 
 	loss_wounding_type = wounding_type
 
 	set_limb(dismembered_part)
 	second_wind()
 	log_wound(victim, src)
-	if(dismembered_part.can_bleed() && wounding_type != WOUND_BURN && victim.blood_volume)
+	if(dismembered_part.can_bleed() && wounding_type != WOUND_BURN && victim.get_blood_volume())
 		victim.spray_blood(attack_direction, severity)
 	dismembered_part.dismember(wounding_type == WOUND_BURN ? BURN : BRUTE, wounding_type = wounding_type)
 	qdel(src)

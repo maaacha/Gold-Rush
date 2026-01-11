@@ -21,7 +21,7 @@
 ///Conduction of heat near the external cooling loop
 #define HIGH_EFFICIENCY_CONDUCTIVITY 0.975
 ///Sets the minimum amount of power the machine uses
-#define MIN_POWER_USAGE 50000
+#define MIN_POWER_USAGE (50 KILO WATTS)
 ///Sets the multiplier for the damage
 #define DAMAGE_CAP_MULTIPLIER 0.005
 ///Sets the range of the hallucinations
@@ -43,9 +43,9 @@
 
 #define WARNING_TIME_DELAY 60
 ///to prevent accent sounds from layering
-#define HYPERTORUS_ACCENT_SOUND_MIN_COOLDOWN 3 SECONDS
+#define HYPERTORUS_ACCENT_SOUND_MIN_COOLDOWN (3 SECONDS)
 
-#define HYPERTORUS_COUNTDOWN_TIME 30 SECONDS
+#define HYPERTORUS_COUNTDOWN_TIME (30 SECONDS)
 
 //
 // Damage source: Too much mass in the fusion mix at high fusion levels
@@ -148,3 +148,14 @@
 #define HYPERTORUS_FLAG_BIG_SPREAD (1<<7)
 #define HYPERTORUS_FLAG_MASSIVE_SPREAD (1<<8)
 #define HYPERTORUS_FLAG_CRITICAL_MELTDOWN (1<<9)
+
+///High power damage
+#define HYPERTORUS_FLAG_HIGH_POWER_DAMAGE (1<<0)
+///High fuel mix mole
+#define HYPERTORUS_FLAG_HIGH_FUEL_MIX_MOLE (1<<1)
+///iron content damage
+#define HYPERTORUS_FLAG_IRON_CONTENT_DAMAGE (1<<2)
+///Iron content increasing
+#define HYPERTORUS_FLAG_IRON_CONTENT_INCREASE (1<<3)
+///Emped hypertorus
+#define HYPERTORUS_FLAG_EMPED (1<<4)

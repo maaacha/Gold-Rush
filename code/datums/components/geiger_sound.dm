@@ -8,7 +8,7 @@
 	if (!isatom(parent))
 		return COMPONENT_INCOMPATIBLE
 
-/datum/component/geiger_sound/Destroy(force, silent)
+/datum/component/geiger_sound/Destroy(force)
 	QDEL_NULL(sound)
 
 	if (!isnull(last_parent))
@@ -45,7 +45,7 @@
 	sound.last_radiation_pulse = pulse_information
 	sound.start()
 
-	addtimer(CALLBACK(sound, /datum/looping_sound/proc/stop), TIME_WITHOUT_RADIATION_BEFORE_RESET, TIMER_UNIQUE | TIMER_OVERRIDE)
+	addtimer(CALLBACK(sound, TYPE_PROC_REF(/datum/looping_sound,stop)), TIME_WITHOUT_RADIATION_BEFORE_RESET, TIMER_UNIQUE | TIMER_OVERRIDE)
 
 /datum/component/geiger_sound/proc/on_moved(atom/source)
 	SIGNAL_HANDLER
@@ -80,13 +80,13 @@
 	last_radiation_pulse = null
 	return ..()
 
-/datum/looping_sound/geiger/get_sound(starttime)
+/datum/looping_sound/geiger/get_sound()
 	if (isnull(last_radiation_pulse))
 		return null
 
-	return ..(starttime, mid_sounds[get_perceived_radiation_danger(last_radiation_pulse, last_insulation_to_target)])
+	return ..(mid_sounds[get_perceived_radiation_danger(last_radiation_pulse, last_insulation_to_target)])
 
-/datum/looping_sound/geiger/stop()
+/datum/looping_sound/geiger/stop(null_parent = FALSE)
 	. = ..()
 
 	last_radiation_pulse = null

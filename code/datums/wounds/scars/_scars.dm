@@ -30,7 +30,7 @@
 	/// If false, we will only check to see if a limb has ALL our biostates, instead of just any.
 	var/check_any_biostates
 
-/datum/scar/Destroy(force, ...)
+/datum/scar/Destroy(force)
 	if(limb)
 		LAZYREMOVE(limb.scars, src)
 	if(victim)
@@ -64,7 +64,7 @@
 	check_any_biostates = pregen_data.require_any_biostate
 
 	limb = BP
-	RegisterSignal(limb, COMSIG_PARENT_QDELETING, PROC_REF(limb_gone))
+	RegisterSignal(limb, COMSIG_QDELETING, PROC_REF(limb_gone))
 
 	severity = W.severity
 	if(limb.owner)
@@ -81,7 +81,10 @@
 		qdel(src)
 		return
 
-	description = pick_list(W.get_scar_file(BP, add_to_scars), W.get_scar_keyword(BP, add_to_scars)) || "general disfigurement"
+	description = pick_list(scar_file, scar_keyword)
+	if (!description)
+		stack_trace("no valid description found for scar! file: [scar_file] keyword: [scar_keyword] wound: [W.type]")
+		description = "general disfigurement"
 
 	precise_location = pick_list_replacements(SCAR_LOC_FILE, limb.body_zone)
 	switch(W.severity)
@@ -109,7 +112,7 @@
 		return
 
 	limb = BP
-	RegisterSignal(limb, COMSIG_PARENT_QDELETING, PROC_REF(limb_gone))
+	RegisterSignal(limb, COMSIG_QDELETING, PROC_REF(limb_gone))
 	if (isnull(check_any_biostates)) // so we dont break old scars. NOTE: REMOVE AFTER VERSION NUMBER MOVES PAST 3
 		check_any_biostates = FALSE
 	if (check_any_biostates)
@@ -150,7 +153,7 @@
 	if(!victim || !is_visible(viewer))
 		return
 
-	var/msg = "[victim.p_they(TRUE)] [victim.p_have()] [description] on [victim.p_their()] [precise_location]."
+	var/msg = "[victim.p_They()] [victim.p_have()] [description] on [victim.p_their()] [precise_location]."
 	switch(severity)
 		if(WOUND_SEVERITY_MODERATE)
 			msg = span_tinynoticeital("[msg]")
@@ -159,7 +162,7 @@
 		if(WOUND_SEVERITY_CRITICAL)
 			msg = span_smallnoticeital("<b>[msg]</b>")
 		if(WOUND_SEVERITY_LOSS)
-			msg = "[victim.p_their(TRUE)] [limb.name] [description]." // different format
+			msg = "[victim.p_Their()] [limb.plaintext_zone] [description]." // different format
 			msg = span_notice("<i><b>[msg]</b></i>")
 	return "\t[msg]"
 
@@ -175,10 +178,10 @@
 
 	var/mob/living/carbon/human/human_victim = victim
 	if(istype(limb, /obj/item/bodypart/head))
-		if((human_victim.wear_mask && (human_victim.wear_mask.flags_inv & HIDEFACE)) || (human_victim.head && (human_victim.head.flags_inv & HIDEFACE)))
+		if(human_victim.obscured_slots & HIDEFACE)
 			return FALSE
 	else if(limb.scars_covered_by_clothes)
-		var/num_covers = LAZYLEN(human_victim.clothingonpart(limb))
+		var/num_covers = LAZYLEN(human_victim.get_clothing_on_part(limb))
 		if(num_covers + get_dist(viewer, victim) >= visibility)
 			return FALSE
 

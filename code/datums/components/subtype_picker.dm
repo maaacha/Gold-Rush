@@ -22,6 +22,11 @@
 	src.on_picked_callback = on_picked_callback
 	build_radial_list()
 
+/datum/component/subtype_picker/Destroy(force)
+	on_picked_callback = null
+	subtype2descriptions = null
+	return ..()
+
 /datum/component/subtype_picker/RegisterWithParent()
 	. = ..()
 	RegisterSignal(parent, COMSIG_ITEM_ATTACK_SELF, PROC_REF(on_attack_self))
@@ -65,11 +70,12 @@
 		return
 
 	var/picked_subtype = name2subtype[name_of_type]
-	on_picked_callback?.Invoke(picked_subtype)
-	picked_subtype = new picked_subtype(picker.drop_location())
+	var/obj/item/picked = new picked_subtype(picker.drop_location())
+	on_picked_callback?.Invoke(picked, picker)
+	SEND_SIGNAL(picked, COMSIG_ITEM_SUBTYPE_PICKER_SELECTED, target, picker)
 
 	qdel(target)
-	picker.put_in_hands(picked_subtype)
+	picker.put_in_hands(picked)
 
 /**
  * Checks if we are allowed to interact with the radial menu
@@ -83,6 +89,6 @@
 		return FALSE
 	if(QDELETED(target))
 		return FALSE
-	if(user.incapacitated() || !user.is_holding(target))
+	if(user.incapacitated || !user.is_holding(target))
 		return FALSE
 	return TRUE

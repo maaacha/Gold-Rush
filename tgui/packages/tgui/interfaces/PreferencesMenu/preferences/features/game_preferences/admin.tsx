@@ -1,10 +1,10 @@
 import {
   CheckboxInput,
-  Feature,
+  type Feature,
   FeatureColorInput,
-  FeatureDropdownInput,
-  FeatureToggle,
+  type FeatureToggle,
 } from '../base';
+import { FeatureDropdownInput } from '../dropdowns';
 
 export const asaycolor: Feature<string> = {
   name: 'Admin chat color',
@@ -36,10 +36,29 @@ export const fast_mc_refresh: FeatureToggle = {
   component: CheckboxInput,
 };
 
-export const looc_admin_pref: FeatureToggle = {
-  name: 'See admin LOOC',
+export const ghost_roles_as_admin: FeatureToggle = {
+  name: 'Get ghost roles while adminned',
   category: 'ADMIN',
-  description:
-    'Toggles whether you want to see LOOC anywhere as an admin or not.',
+  description: `
+    If you de-select this, you will not get any ghost role pop-ups while
+    adminned! Every single pop-up WILL never show up for you in an adminned
+    state. However, this does not suppress notifications when you are
+    a regular player (deadminned).
+`,
+  component: CheckboxInput,
+};
+
+export const comms_notification: FeatureToggle = {
+  name: 'Enable comms console sound',
+  category: 'ADMIN',
+  component: CheckboxInput,
+};
+
+export const auto_deadmin_on_ready_or_latejoin: FeatureToggle = {
+  name: 'Auto deadmin - Ready or Latejoin',
+  category: 'ADMIN',
+  description: `
+    When enabled, you will automatically deadmin when you click to ready up or latejoin a round.
+`,
   component: CheckboxInput,
 };

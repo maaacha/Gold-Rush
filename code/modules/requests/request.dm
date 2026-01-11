@@ -18,10 +18,12 @@
 	var/owner_name
 	/// The message associated with the request
 	var/message
+	/// Just any information, which you can to send with request. For example paper datum.
+	var/additional_information
 	/// When the request was created
 	var/timestamp
 
-/datum/request/New(client/requestee, type, request)
+/datum/request/New(client/requestee, type, request, additional_info)
 	if (!requestee)
 		qdel(src)
 		return
@@ -30,5 +32,6 @@
 	owner_ckey = owner.ckey
 	req_type = type
 	message = request
+	additional_information = additional_info
 	timestamp = world.time
 	owner_name = key_name(requestee, FALSE)

@@ -16,7 +16,7 @@
 
 /obj/machinery/ecto_sniffer/Initialize(mapload)
 	. = ..()
-	wires = new/datum/wires/ecto_sniffer(src)
+	set_wires(new/datum/wires/ecto_sniffer(src))
 
 /obj/machinery/ecto_sniffer/attack_ghost(mob/user)
 	. = ..()
@@ -29,9 +29,11 @@
 	activate(user)
 
 /obj/machinery/ecto_sniffer/proc/activate(mob/activator)
+	if(!use_energy(active_power_usage, force = FALSE))
+		return
 	flick("ecto_sniffer_flick", src)
 	playsound(loc, 'sound/machines/ectoscope_beep.ogg', 75)
-	use_power(10)
+	say("Reporting [pick(world.file2list("strings/spook_levels.txt"))] levels of paranormal activity!")
 	if(activator?.ckey)
 		ectoplasmic_residues += activator.ckey
 		addtimer(CALLBACK(src, PROC_REF(clear_residue), activator.ckey), 15 SECONDS)
@@ -53,21 +55,24 @@
 /obj/machinery/ecto_sniffer/update_overlays()
 	. = ..()
 	if(is_operational && on)
-		. += emissive_appearance(icon, "[initial(icon_state)]-light-mask", alpha = src.alpha)
+		. += emissive_appearance(icon, "[initial(icon_state)]-light-mask", src, alpha = src.alpha)
 
 /obj/machinery/ecto_sniffer/wrench_act(mob/living/user, obj/item/tool)
 	tool.play_tool_sound(src, 15)
 	set_anchored(!anchored)
 	balloon_alert(user, "sniffer [anchored ? "anchored" : "unanchored"]")
+	return ITEM_INTERACT_SUCCESS
 
-/obj/machinery/ecto_sniffer/screwdriver_act(mob/living/user, obj/item/I)
-	. = ..()
-	if(!.)
-		return default_deconstruction_screwdriver(user, "ecto_sniffer_open", "ecto_sniffer", I)
+/obj/machinery/ecto_sniffer/screwdriver_act(mob/living/user, obj/item/screwdrivertool)
+	if(default_deconstruction_screwdriver(user, "ecto_sniffer_open", "ecto_sniffer", screwdrivertool))
+		return ITEM_INTERACT_SUCCESS
+	return ITEM_INTERACT_BLOCKING
+
 
 /obj/machinery/ecto_sniffer/crowbar_act(mob/living/user, obj/item/tool)
-	if(!default_deconstruction_crowbar(tool))
-		return ..()
+	if(default_deconstruction_crowbar(tool))
+		return ITEM_INTERACT_SUCCESS
+	return ITEM_INTERACT_BLOCKING
 
 /obj/machinery/ecto_sniffer/Destroy()
 	ectoplasmic_residues = null

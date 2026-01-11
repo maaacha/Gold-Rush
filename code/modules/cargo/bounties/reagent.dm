@@ -6,21 +6,22 @@
 /datum/bounty/reagent/can_claim()
 	return ..() && shipped_volume >= required_volume
 
-/datum/bounty/reagent/applies_to(obj/O)
-	if(!istype(O, /obj/item/reagent_containers))
+/datum/bounty/reagent/applies_to(obj/shipped)
+	if(!is_reagent_container(shipped))
 		return FALSE
-	if(!O.reagents || !O.reagents.has_reagent(wanted_reagent.type))
+	if(!shipped.reagents || !shipped.reagents.has_reagent(wanted_reagent.type))
 		return FALSE
-	if(O.flags_1 & HOLOGRAM_1)
+	if(shipped.flags_1 & HOLOGRAM_1)
 		return FALSE
 	return shipped_volume < required_volume
 
-/datum/bounty/reagent/ship(obj/O)
-	if(!applies_to(O))
-		return
-	shipped_volume += O.reagents.get_reagent_amount(wanted_reagent.type)
+/datum/bounty/reagent/ship(obj/shipped)
+	if(!applies_to(shipped))
+		return FALSE
+	shipped_volume += shipped.reagents.get_reagent_amount(wanted_reagent.type)
 	if(shipped_volume > required_volume)
 		shipped_volume = required_volume
+	return TRUE
 
 /datum/bounty/reagent/simple_drink
 	name = "Simple Drink"
@@ -70,7 +71,16 @@
 		/datum/reagent/consumable/ethanol/demonsblood,\
 		/datum/reagent/consumable/ethanol/crevice_spike,\
 		/datum/reagent/consumable/ethanol/singulo,\
-		/datum/reagent/consumable/ethanol/whiskey_sour)
+		/datum/reagent/consumable/ethanol/whiskey_sour,\
+		/datum/reagent/consumable/ethanol/boston_sour,\
+		/datum/reagent/consumable/ethanol/old_fashioned,\
+		/datum/reagent/consumable/ethanol/sazerac,\
+		/datum/reagent/consumable/ethanol/hot_toddy,\
+		/datum/reagent/consumable/ethanol/daiquiri,\
+		/datum/reagent/consumable/ethanol/blue_blazer,\
+		/datum/reagent/consumable/ethanol/flip_cocktail,\
+		/datum/reagent/consumable/ethanol/bitters_soda,\
+		/datum/chemical_reaction/drink/star)
 
 	var/reagent_type = pick(possible_reagents)
 	wanted_reagent = new reagent_type
@@ -103,7 +113,11 @@
 		/datum/reagent/consumable/ethanol/silencer,\
 		/datum/reagent/consumable/ethanol/peppermint_patty,\
 		/datum/reagent/consumable/ethanol/aloe,\
-		/datum/reagent/consumable/pumpkin_latte)
+		/datum/reagent/consumable/pumpkin_latte,\
+		/datum/reagent/consumable/ethanol/ramos_gin_fizz,\
+		/datum/reagent/consumable/ethanol/sangria,\
+		/datum/reagent/consumable/ethanol/tizirian_sour,\
+		/datum/chemical_reaction/drink/suffering_bastard)
 
 	var/reagent_type = pick(possible_reagents)
 	wanted_reagent = new reagent_type
@@ -120,7 +134,6 @@
 	// Chemicals that can be mixed by a single skilled Chemist.
 	var/static/list/possible_reagents = list(\
 		/datum/reagent/medicine/leporazine,\
-		/datum/reagent/medicine/clonexadone,\
 		/datum/reagent/medicine/mine_salve,\
 		/datum/reagent/medicine/c2/convermol,\
 		/datum/reagent/medicine/ephedrine,\
@@ -193,19 +206,20 @@
 /datum/bounty/pill/can_claim()
 	return ..() && shipped_ammount >= required_ammount
 
-/datum/bounty/pill/applies_to(obj/O)
-	if(!istype(O, /obj/item/reagent_containers/pill))
+/datum/bounty/pill/applies_to(obj/shipped)
+	if(!istype(shipped, /obj/item/reagent_containers/applicator/pill))
 		return FALSE
-	if(O?.reagents.get_reagent_amount(wanted_reagent.type) >= wanted_vol)
+	if(shipped?.reagents.get_reagent_amount(wanted_reagent.type) >= wanted_vol)
 		return TRUE
 	return FALSE
 
-/datum/bounty/pill/ship(obj/O)
-	if(!applies_to(O))
-		return
+/datum/bounty/pill/ship(obj/shipped)
+	if(!applies_to(shipped))
+		return FALSE
 	shipped_ammount += 1
 	if(shipped_ammount > required_ammount)
 		shipped_ammount = required_ammount
+	return TRUE
 
 /datum/bounty/pill/simple_pill
 	name = "Simple Pill"

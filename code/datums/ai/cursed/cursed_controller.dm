@@ -27,9 +27,9 @@
 	return ..() //Run parent at end
 
 ///signal called by the pawn hitting something after a throw
-/datum/ai_controller/cursed/proc/on_throw_hit(datum/source, atom/hit_atom, datum/thrownthing/throwingdatum)
+/datum/ai_controller/cursed/proc/on_throw_hit(datum/source, atom/hit_atom, datum/thrownthing/throwing_datum, caught)
 	SIGNAL_HANDLER
-	if(!iscarbon(hit_atom))
+	if(caught || !iscarbon(hit_atom))
 		return
 	//equipcode has sleeps all over it.
 	INVOKE_ASYNC(src, PROC_REF(try_equipping_to_target_slot), hit_atom)
@@ -50,10 +50,10 @@
 /datum/ai_controller/cursed/proc/try_equipping_to_target_slot(mob/living/carbon/curse_victim, slot_already_in)
 	var/obj/item/item_pawn = pawn
 	var/attempted_slot = blackboard[BB_TARGET_SLOT]
-	if(slot_already_in && attempted_slot == slot_already_in) //thanks for making it easy
+	if(slot_already_in && (attempted_slot & slot_already_in)) //thanks for making it easy
 		what_a_horrible_night_to_have_a_curse()
 		return
-	if(attempted_slot == ITEM_SLOT_HANDS) //hands needs some different checks
+	if(attempted_slot & ITEM_SLOT_HANDS) //hands needs some different checks
 		curse_victim.drop_all_held_items()
 		if(curse_victim.put_in_hands(item_pawn, del_on_fail = FALSE))
 			to_chat(curse_victim, span_danger("[item_pawn] leaps into your hands!"))

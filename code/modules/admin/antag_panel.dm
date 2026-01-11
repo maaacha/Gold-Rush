@@ -40,15 +40,20 @@ GLOBAL_VAR(antag_prototypes)
 	return parts.Join("<br>")
 
 /datum/antagonist/proc/antag_panel_objectives()
-	var/result = "<i><b>Objectives</b></i>:<br>"
+	var/result = "<i><b>Personal Objectives</b></i>:<br>"
 	if (objectives.len == 0)
 		result += "EMPTY<br>"
 	else
 		var/obj_count = 1
 		for(var/datum/objective/objective as anything in objectives)
-			result += "<B>[obj_count]</B>: [objective.explanation_text] <a href='byond://?src=[REF(owner)];obj_edit=[REF(objective)]'>Edit</a> <a href='byond://?src=[REF(owner)];obj_delete=[REF(objective)]'>Delete</a> <a href='byond://?src=[REF(owner)];obj_completed=[REF(objective)]'><font color=[objective.completed ? "green" : "red"]>[objective.completed ? "Mark as incomplete" : "Mark as complete"]</font></a><br>"
+			result += "<B>[obj_count]</B>: [objective.explanation_text] \
+				<a href='byond://?src=[REF(owner)];obj_edit=[REF(objective)]'>Edit</a> \
+				<a href='byond://?src=[REF(owner)];obj_delete=[REF(objective)]'>Delete</a> \
+				<a href='byond://?src=[REF(owner)];obj_completed=[REF(objective)]'><font color=[objective.check_completion() ? "green" : "red"]>[objective.completed ? "Mark as incomplete" : "Mark as complete"]</font></a> \
+				<br>"
 			obj_count++
 	result += "<a href='byond://?src=[REF(owner)];obj_add=1;target_antag=[REF(src)]'>Add objective</a><br>"
+	result += "<a href='byond://?src=[REF(owner)];obj_prompt_custom=1;target_antag=[REF(src)]'>Prompt custom objective entry</a><br>"
 	result += "<a href='byond://?src=[REF(owner)];obj_announce=1'>Announce objectives</a><br>"
 	return result
 
@@ -69,18 +74,29 @@ GLOBAL_VAR(antag_prototypes)
 					break
 	return common_commands
 
+/**
+ * Returns a list of "statuses" this mind has - like "Infected", "Mindshielded", etc
+ */
 /datum/mind/proc/get_special_statuses()
 	var/list/result = LAZYCOPY(special_statuses)
 	if(!current)
-		result += "<span class='bad'>No body!</span>"
+		result += span_bad("No body!")
 	if(current && HAS_TRAIT(current, TRAIT_MINDSHIELD))
-		result += "<span class='good'>Mindshielded</span>"
-	//Move these to mob
+		result += span_good("Mindshielded")
+	if(current && HAS_MIND_TRAIT(current, TRAIT_UNCONVERTABLE))
+		result += span_good("Unconvertable")
+	return result
+
+/**
+ * Returns a list of "roles" this mind has - like "Traitor", "Ex Head Rev", "Emagged", etc
+ */
+/datum/mind/proc/get_special_roles()
+	var/list/roles = LAZYCOPY(special_roles)
 	if(iscyborg(current))
 		var/mob/living/silicon/robot/robot = current
 		if (robot.emagged)
-			result += "<span class='bad'>Emagged</span>"
-	return result.Join(" | ")
+			roles += "Emagged"
+	return roles
 
 /datum/mind/proc/traitor_panel()
 	if(!SSticker.HasRoundStarted())
@@ -90,14 +106,14 @@ GLOBAL_VAR(antag_prototypes)
 		tgui_alert(usr, "This mind doesn't have a mob, or is deleted! For some reason!", "Edit Memory")
 		return
 
-	var/out = "<B>[name]</B>[(current && (current.real_name!=name))?" (as [current.real_name])":""]<br>"
+	var/out = "<B>[name]</B>[(current && (current.real_name != name))?" (as [current.real_name])":""]<br>"
 	out += "Mind currently owned by key: [key] [active?"(synced)":"(not synced)"]<br>"
 	out += "Assigned role: [assigned_role.title]. <a href='byond://?src=[REF(src)];role_edit=1'>Edit</a><br>"
-	out += "Faction and special role: <b><font color='red'>[special_role]</font></b><br>"
+	out += "<a href='byond://?_src_=holder;[HrefToken()];check_teams=1'>Show Teams</a><br><br>"
 
-	var/special_statuses = get_special_statuses()
+	var/special_statuses = get_special_roles() | get_special_statuses()
 	if(length(special_statuses))
-		out += get_special_statuses() + "<br>"
+		out += "Roles: [jointext(special_statuses, " | ")]<br>"
 
 	if(!GLOB.antag_prototypes)
 		GLOB.antag_prototypes = list()
@@ -108,7 +124,7 @@ GLOBAL_VAR(antag_prototypes)
 				GLOB.antag_prototypes[cat_id] = list(A)
 			else
 				GLOB.antag_prototypes[cat_id] += A
-	sortTim(GLOB.antag_prototypes, GLOBAL_PROC_REF(cmp_text_asc), associative = TRUE)
+	sortTim(GLOB.antag_prototypes, GLOBAL_PROC_REF(cmp_text_asc),associative=TRUE)
 
 	var/list/sections = list()
 	var/list/priority_sections = list()
@@ -146,8 +162,9 @@ GLOBAL_VAR(antag_prototypes)
 				continue
 		else //Show removal and current one
 			priority_sections |= antag_category
-			antag_header_parts += "<span class='bad'>[current_antag.name]</span>"
+			antag_header_parts += span_bad("[current_antag.name]")
 			antag_header_parts += "<a href='byond://?src=[REF(src)];remove_antag=[REF(current_antag)]'>Remove</a>"
+			antag_header_parts += "<a href='byond://?src=[REF(src)];open_antag_vv=[REF(current_antag)]'>Open VV</a>"
 
 
 		//We aren't antag of this category, grab first prototype to check the prefs (This is pretty vague but really not sure how else to do this)
@@ -158,7 +175,7 @@ GLOBAL_VAR(antag_prototypes)
 					continue
 				pref_source = prototype
 				break
-		if(pref_source.job_rank)
+		if(pref_source.pref_flag)
 			antag_header_parts += pref_source.enabled_in_preferences(src) ? "Enabled in Prefs" : "Disabled in Prefs"
 
 		//Traitor : None | Traitor | IAA
@@ -186,14 +203,10 @@ GLOBAL_VAR(antag_prototypes)
 		var/uplink_info = "<i><b>Uplink</b></i>:"
 		var/datum/component/uplink/U = find_syndicate_uplink()
 		if(U)
-			if(!U.uplink_handler.has_objectives)
-				uplink_info += "<a href='byond://?src=[REF(src)];common=takeuplink'>take</a>"
 			if (check_rights(R_FUN, 0))
 				uplink_info += ", <a href='byond://?src=[REF(src)];common=crystals'>[U.uplink_handler.telecrystals]</a> TC"
 				if(U.uplink_handler.has_progression)
 					uplink_info += ", <a href='byond://?src=[REF(src)];common=progression'>[U.uplink_handler.progression_points]</a> PR"
-				if(U.uplink_handler.has_objectives)
-					uplink_info += ", <a href='byond://?src=[REF(src)];common=give_objective'>Force Give Objective</a>"
 			else
 				uplink_info += ", [U.uplink_handler.telecrystals] TC"
 				if(U.uplink_handler.has_progression)

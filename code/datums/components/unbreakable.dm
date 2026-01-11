@@ -6,7 +6,7 @@
 		return COMPONENT_INCOMPATIBLE
 	ADD_TRAIT(parent, TRAIT_UNBREAKABLE, INNATE_TRAIT)
 
-/datum/component/unbreakable/Destroy(force, silent)
+/datum/component/unbreakable/Destroy(force)
 	REMOVE_TRAIT(parent, TRAIT_UNBREAKABLE, INNATE_TRAIT)
 	return ..()
 
@@ -24,7 +24,7 @@
 		return
 	COOLDOWN_START(src, surge_cooldown, 1 MINUTES)
 	surged.balloon_alert(surged, "you refuse to give up!")//breaks balloon alert conventions by using a "!" for a fail message but that's okay because it's a pretty awesome moment
-	surged.heal_overall_damage(15, 15, 0, BIO_STANDARD)
+	surged.heal_overall_damage(brute = 15, burn = 15, required_bodytype = BODYTYPE_ORGANIC)
 	if(surged.reagents.get_reagent_amount(/datum/reagent/medicine/ephedrine) < 20)
 		surged.reagents.add_reagent(/datum/reagent/medicine/ephedrine, 10)
 	if(surged.reagents.get_reagent_amount(/datum/reagent/medicine/epinephrine) < 20)

@@ -1,9 +1,9 @@
 ///Your favourite Jojoke. Used for the gloves of the north star.
 /datum/component/wearertargeting/punchcooldown
-	signals = list(COMSIG_HUMAN_MELEE_UNARMED_ATTACK)
+	signals = list(COMSIG_LIVING_UNARMED_ATTACK, COMSIG_LIVING_HAND_ITEM_ATTACK)
 	mobtype = /mob/living/carbon
 	proctype = PROC_REF(reducecooldown)
-	valid_slots = list(ITEM_SLOT_GLOVES)
+	valid_slots = ITEM_SLOT_GLOVES
 	///The warcry this generates
 	var/warcry = "AT"
 
@@ -13,9 +13,10 @@
 		return
 	RegisterSignal(parent, COMSIG_ITEM_ATTACK_SELF, PROC_REF(changewarcry))
 
-///Called on COMSIG_HUMAN_MELEE_UNARMED_ATTACK. Yells the warcry and and reduces punch cooldown.
+///Called on COMSIG_LIVING_UNARMED_ATTACK. Yells the warcry and and reduces punch cooldown.
 /datum/component/wearertargeting/punchcooldown/proc/reducecooldown(mob/living/carbon/M, atom/target)
-	if(M.combat_mode && isliving(target))
+	var/obj/item/used_item = M.get_active_held_item()
+	if((M.combat_mode && isliving(target)) || (used_item & HAND_ITEM))
 		M.changeNext_move(CLICK_CD_RAPID)
 		if(warcry)
 			M.say(warcry, ignore_spam = TRUE, forced = "north star warcry")

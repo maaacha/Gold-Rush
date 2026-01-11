@@ -2,12 +2,16 @@
 	if(!check_rights())
 		return
 	log_admin("[key_name(usr)] checked the player panel.")
-	var/dat = "<html><head><meta http-equiv='X-UA-Compatible' content='IE=edge; charset=UTF-8'/><title>Player Panel</title></head>"
+	var/dat = "<html><head><meta http-equiv='X-UA-Compatible' content='IE=edge' charset='UTF-8'/><title>Player Panel</title></head>"
+
+	var/ui_scale = owner.prefs.read_preference(/datum/preference/toggle/ui_scale)
 
 	//javascript, the part that does most of the work~
 	dat += {"
 
 		<head>
+			[!ui_scale && owner.window_scaling ? "<style>body {zoom: [100 / owner.window_scaling]%;}</style>" : ""]
+
 			<script type='text/javascript'>
 
 				var locked_tabs = new Array();
@@ -76,7 +80,7 @@
 
 					body += "</td><td align='center'>";
 
-					body += "<font size='2'><b>"+job+" "+name+"</b><br><b>Real name "+real_name+"</b><br><b>Played by "+key+" ("+ip+")</b><br><b>Old names :"+old_names+"</b></font>";
+					body += "<font size='2'><b>"+job+" "+name+"</b><br><b>Real name "+real_name+"</b><br><b>Played by "+key+" ("+ip+")</b><br><b>Old names: "+old_names+"</b></font>";
 
 					body += "</td><td align='center'>";
 
@@ -107,13 +111,13 @@
 
 						var id = span.getAttribute("id");
 
-						if(!id || !(id.indexOf("item")==0))
+						if(!id || !(id.indexOf("item") == 0))
 							continue;
 
 						var pass = 1;
 
 						for(var j = 0; j < locked_tabs.length; j++){
-							if(locked_tabs\[j\]==id){
+							if(locked_tabs\[j\] == id){
 								pass = 0;
 								break;
 							}
@@ -142,7 +146,7 @@
 
 					var pass = 1;
 					for(var j = 0; j < locked_tabs.length; j++){
-						if(locked_tabs\[j\]==id){
+						if(locked_tabs\[j\] == id){
 							pass = 0;
 							break;
 						}
@@ -163,7 +167,7 @@
 					var index = 0;
 					var pass = 0;
 					for(var j = 0; j < locked_tabs.length; j++){
-						if(locked_tabs\[j\]==id){
+						if(locked_tabs\[j\] == id){
 							pass = 1;
 							index = j;
 							break;
@@ -224,17 +228,17 @@
 			var/color = "#e6e6e6"
 			if(i%2 == 0)
 				color = "#f2f2f2"
-			var/is_antagonist = is_special_character(M)
+			var/is_antagonist = M.is_antag(NONE)
 
 			var/M_job = ""
 
 			if(isliving(M))
 
 				if(iscarbon(M)) //Carbon stuff
-					if(ismonkey(M))
-						M_job = "Monkey"
-					else if(ishuman(M))
+					if(ishuman(M) && M.job)
 						M_job = M.job
+					else if(ismonkey(M))
+						M_job = "Monkey"
 					else if(isalien(M)) //aliens
 						if(islarva(M))
 							M_job = "Alien larva"
@@ -253,7 +257,7 @@
 					else
 						M_job = "Silicon-based"
 
-				else if(isanimal(M)) //simple animals
+				else if(isanimal_or_basicmob(M)) //simple animals
 					if(iscorgi(M))
 						M_job = "Corgi"
 					else if(isslime(M))
@@ -274,18 +278,17 @@
 				else
 					M_job = "Ghost"
 
+			var/M_key = html_encode(M.key)
+			var/M_ip_address = isnull(M.lastKnownIP) ? "+localhost+" : M.lastKnownIP
 			var/M_name = html_encode(M.name)
 			var/M_rname = html_encode(M.real_name)
 			var/M_rname_as_key = html_encode(ckey(M.real_name)) // so you can ignore punctuation
 			if(M_rname == M_rname_as_key)
 				M_rname_as_key = null
-			var/M_key = html_encode(M.key)
-			var/previous_names = ""
-			if(M_key)
-				var/datum/player_details/P = GLOB.player_details[ckey(M_key)]
-				if(P)
-					previous_names = P.played_names.Join(",")
-			previous_names = html_encode(previous_names)
+
+			var/previous_names_string = ""
+			if(M.persistent_client)
+				previous_names_string = M.persistent_client.get_played_names()
 
 			//output for each mob
 			dat += {"
@@ -297,14 +300,14 @@
 						onmouseover='expand("data[i]","item[i]")'
 						>
 						<b id='search[i]'>[M_name] - [M_rname] - [M_key] ([M_job])</b>
-						<span hidden class='filter_data'>[M_name] [M_rname] [M_rname_as_key] [M_key] [M_job] [previous_names]</span>
+						<span hidden class='filter_data'>[M_name] [M_rname] [M_rname_as_key] [M_key] [M_job] [previous_names_string]</span>
 						<span hidden id="data[i]_name">[M_name]</span>
 						<span hidden id="data[i]_job">[M_job]</span>
 						<span hidden id="data[i]_rname">[M_rname]</span>
 						<span hidden id="data[i]_rname_as_key">[M_rname_as_key]</span>
-						<span hidden id="data[i]_prevnames">[previous_names]</span>
+						<span hidden id="data[i]_prevnames">[previous_names_string]</span>
 						<span hidden id="data[i]_key">[M_key]</span>
-						<span hidden id="data[i]_lastip">[M.lastKnownIP]</span>
+						<span hidden id="data[i]_lastip">[M_ip_address]</span>
 						<span hidden id="data[i]_isantag">[is_antagonist]</span>
 						<span hidden id="data[i]_ref">[REF(M)]</span>
 						</a>
@@ -329,4 +332,8 @@
 	</body></html>
 	"}
 
-	usr << browse(dat, "window=players;size=600x480")
+	var/window_size = "size=600x480"
+	if(owner.window_scaling && ui_scale)
+		window_size = "size=[600 * owner.window_scaling]x[400 * owner.window_scaling]"
+
+	usr << browse(dat, "window=players;[window_size]")

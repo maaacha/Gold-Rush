@@ -56,4 +56,3 @@
 	result = UpgradeDeprecatedCommandResponse(result, command)
 
 	return result ? result.text : TRUE
-

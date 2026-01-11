@@ -36,23 +36,23 @@
 		RegisterSignal(sparring, COMSIG_MOB_FIRED_GUN, PROC_REF(gun_violation))
 		RegisterSignal(sparring, COMSIG_MOB_GRENADE_ARMED, PROC_REF(grenade_violation))
 	if(weapons_condition <= CONDITION_CEREMONIAL_ONLY)
-		RegisterSignal(sparring, COMSIG_PARENT_ATTACKBY, PROC_REF(melee_violation))
+		RegisterSignal(sparring, COMSIG_ATOM_ATTACKBY, PROC_REF(melee_violation))
 	//arena conditions
 	RegisterSignal(sparring, COMSIG_MOVABLE_MOVED, PROC_REF(arena_violation))
 	//severe violations (insta violation win for other party) conditions
-	RegisterSignal(sparring, COMSIG_MOVABLE_TELEPORTED, PROC_REF(teleport_violation))
+	RegisterSignal(sparring, COMSIG_MOVABLE_POST_TELEPORT, PROC_REF(teleport_violation))
 	//win conditions
 	RegisterSignal(sparring, COMSIG_MOB_STATCHANGE, PROC_REF(check_for_victory))
 	//flub conditions
-	RegisterSignal(sparring, COMSIG_PARENT_ATTACKBY, PROC_REF(outsider_interference))
-	RegisterSignal(sparring, COMSIG_ATOM_HULK_ATTACK, PROC_REF(hulk_interference))
-	RegisterSignal(sparring, COMSIG_ATOM_ATTACK_HAND, PROC_REF(hand_interference))
-	RegisterSignal(sparring, COMSIG_ATOM_ATTACK_PAW, PROC_REF(paw_interference))
-	RegisterSignal(sparring, COMSIG_ATOM_HITBY, PROC_REF(thrown_interference))
-	RegisterSignal(sparring, COMSIG_ATOM_BULLET_ACT, PROC_REF(projectile_interference))
+	RegisterSignal(sparring, COMSIG_ATOM_ATTACKBY, PROC_REF(outsider_interference), override = TRUE)
+	RegisterSignal(sparring, COMSIG_ATOM_HULK_ATTACK, PROC_REF(hulk_interference), override = TRUE)
+	RegisterSignal(sparring, COMSIG_ATOM_ATTACK_HAND, PROC_REF(hand_interference), override = TRUE)
+	RegisterSignal(sparring, COMSIG_ATOM_ATTACK_PAW, PROC_REF(paw_interference), override = TRUE)
+	RegisterSignal(sparring, COMSIG_ATOM_HITBY, PROC_REF(thrown_interference), override = TRUE)
+	RegisterSignal(sparring, COMSIG_ATOM_BULLET_ACT, PROC_REF(projectile_interference), override = TRUE)
 	//severe flubs (insta match ender, no winners) conditions
 	RegisterSignal(sparring, COMSIG_LIVING_DEATH, PROC_REF(death_flub))
-	RegisterSignal(sparring, COMSIG_PARENT_QDELETING, PROC_REF(deletion_flub))
+	RegisterSignal(sparring, COMSIG_QDELETING, PROC_REF(deletion_flub))
 
 /datum/sparring_match/proc/unhook_signals(mob/living/carbon/human/sparring)
 	if(!sparring)
@@ -60,18 +60,17 @@
 	UnregisterSignal(sparring, list(
 		COMSIG_MOB_FIRED_GUN,
 		COMSIG_MOB_GRENADE_ARMED,
-		COMSIG_MOB_ITEM_ATTACK,
 		COMSIG_MOVABLE_MOVED,
-		COMSIG_MOVABLE_TELEPORTED,
+		COMSIG_MOVABLE_POST_TELEPORT,
 		COMSIG_MOB_STATCHANGE,
-		COMSIG_PARENT_ATTACKBY,
+		COMSIG_ATOM_ATTACKBY,
 		COMSIG_ATOM_HULK_ATTACK,
 		COMSIG_ATOM_ATTACK_HAND,
 		COMSIG_ATOM_ATTACK_PAW,
 		COMSIG_ATOM_HITBY,
 		COMSIG_ATOM_BULLET_ACT,
 		COMSIG_LIVING_DEATH,
-		COMSIG_PARENT_QDELETING,
+		COMSIG_QDELETING,
 	))
 
 ///someone is changing health state, end the fight in crit
@@ -119,12 +118,14 @@
 
 /datum/sparring_match/proc/thrown_interference(datum/source, atom/movable/thrown_movable, skipcatch = FALSE, hitpush = TRUE, blocked = FALSE, datum/thrownthing/throwingdatum)
 	SIGNAL_HANDLER
-	if(istype(thrown_movable, /obj/item))
-		var/mob/living/honorbound = source
-		var/obj/item/thrown_item = thrown_movable
-		var/mob/thrown_by = thrown_item.thrownby?.resolve()
-		if(thrown_item.throwforce < honorbound.health && ishuman(thrown_by))
-			INVOKE_ASYNC(src, PROC_REF(flub), thrown_by)
+
+	if(!isitem(thrown_movable))
+		return
+	var/mob/living/honorbound = source
+	var/obj/item/thrown_item = thrown_movable
+	var/mob/thrown_by = throwingdatum?.get_thrower()
+	if(thrown_item.throwforce < honorbound.health && ishuman(thrown_by))
+		INVOKE_ASYNC(src, PROC_REF(flub), thrown_by)
 
 /datum/sparring_match/proc/projectile_interference(datum/participant, obj/projectile/proj)
 	SIGNAL_HANDLER
@@ -149,7 +150,7 @@
 	flubbed_match()
 
 ///someone used a gun
-/datum/sparring_match/proc/gun_violation(datum/offender)
+/datum/sparring_match/proc/gun_violation(mob/offender, obj/item/gun/gun_fired, target, params, zone_override, list/bonus_spread_values)
 	SIGNAL_HANDLER
 	violation(offender, "using guns")
 
@@ -208,7 +209,7 @@
 		switch(pick(possible_punishments))
 			if(PUNISHMENT_OMEN)
 				to_chat(interfering, span_warning("You get a bad feeling... for interfering with [chaplain]'s sparring match..."))
-				interfering.AddComponent(/datum/component/omen, TRUE, null, FALSE)
+				interfering.AddComponent(/datum/component/omen)
 			if(PUNISHMENT_LIGHTNING)
 				to_chat(interfering, span_warning("[GLOB.deity] has punished you for interfering with [chaplain]'s sparring match!"))
 				lightningbolt(interfering)
@@ -216,7 +217,7 @@
 				var/mob/living/carbon/human/branded = interfering
 				to_chat(interfering, span_warning("[GLOB.deity] brands your flesh for interfering with [chaplain]'s sparring match!!"))
 				var/obj/item/bodypart/branded_limb = pick(branded.bodyparts)
-				branded_limb.force_wound_upwards(/datum/wound/burn/flesh/severe/brand)
+				branded_limb.force_wound_upwards(/datum/wound/burn/flesh/severe/brand, wound_source = "divine intervention")
 				branded.emote("scream")
 
 	flubs--
@@ -228,9 +229,9 @@
 	cleanup_sparring_match()
 
 	if(chaplain) //flubing means we don't know who is still standing
-		to_chat(chaplain, span_boldannounce("The match was flub'd! No winners, no losers. You may restart the match with another contract."))
+		to_chat(chaplain, span_bolddanger("The match was flub'd! No winners, no losers. You may restart the match with another contract."))
 	if(opponent)
-		to_chat(opponent, span_boldannounce("The match was flub'd! No winners, no losers."))
+		to_chat(opponent, span_bolddanger("The match was flub'd! No winners, no losers."))
 	qdel(src)
 
 ///helper to remove all the effects after a match ends
@@ -244,8 +245,8 @@
 
 /datum/sparring_match/proc/end_match(mob/living/carbon/human/winner, mob/living/carbon/human/loser, violation_victory = FALSE)
 	cleanup_sparring_match()
-	to_chat(chaplain, span_boldannounce("[violation_victory ? "[loser] DISQUALIFIED!" : ""]  [winner] HAS WON!"))
-	to_chat(opponent, span_boldannounce("[violation_victory ? "[loser] DISQUALIFIED!" : ""]  [winner] HAS WON!"))
+	to_chat(chaplain, span_bolddanger("[violation_victory ? "[loser] DISQUALIFIED!" : ""]  [winner] HAS WON!"))
+	to_chat(opponent, span_bolddanger("[violation_victory ? "[loser] DISQUALIFIED!" : ""]  [winner] HAS WON!"))
 	win(winner, loser, violation_victory)
 	lose(loser, winner)
 	if(stakes_condition != STAKES_YOUR_SOUL)
@@ -285,8 +286,8 @@
 					return
 				to_chat(loser, span_userdanger("[GLOB.deity] is enraged by your lackluster sparring record!"))
 				lightningbolt(loser)
-				SEND_SIGNAL(loser, COMSIG_ADD_MOOD_EVENT, "sparring", /datum/mood_event/banished)
-				loser.mind.holy_role = NONE
+				loser.add_mood_event("sparring", /datum/mood_event/banished)
+				loser.mind.set_holy_role(NONE)
 				to_chat(loser, span_userdanger("You have been excommunicated! You are no longer holy!"))
 		if(STAKES_MONEY_MATCH)
 			to_chat(loser, span_userdanger("You've lost all your money to [winner]!"))
@@ -294,11 +295,11 @@
 			var/datum/bank_account/winner_account = winner.get_bank_account()
 			if(!loser_account || !winner_account)//the winner is pretty owned in this case but whatever shoulda read the fine print of the contract
 				return
-			winner_account.transfer_money(loser_account, loser_account.account_balance)
+			winner_account.transfer_money(loser_account, loser_account.account_balance, "Bet: Sparring")
 		if(STAKES_YOUR_SOUL)
 			var/turf/shard_turf = get_turf(loser)
 			if(!shard_turf)
 				return
 			to_chat(loser, span_userdanger("You've lost ownership over your soul to [winner]!"))
 			var/obj/item/soulstone/anybody/chaplain/sparring/shard = new(shard_turf)
-			shard.capture_soul(loser, winner, forced = TRUE)
+			INVOKE_ASYNC(shard, TYPE_PROC_REF(/obj/item/soulstone, capture_soul), loser, winner, forced = TRUE)

@@ -1,35 +1,47 @@
 /datum/emote/living/carbon/human
 	mob_type_allowed_typecache = list(/mob/living/carbon/human)
 
-/datum/emote/living/carbon/human/cry
-	key = "cry"
-	key_third_person = "cries"
-	message = "cries."
-	emote_type = EMOTE_AUDIBLE
-
 /datum/emote/living/carbon/human/dap
 	key = "dap"
 	key_third_person = "daps"
 	message = "sadly can't find anybody to give daps to, and daps themself. Shameful."
-	message_param = "give daps to %t."
+	message_param = "gives daps to %t."
 	hands_use_check = TRUE
 
 /datum/emote/living/carbon/human/eyebrow
 	key = "eyebrow"
 	message = "raises an eyebrow."
 
+/datum/emote/living/carbon/human/glasses
+	key = "glasses"
+	key_third_person = "glasses"
+	message = "pushes up their glasses."
+	emote_type = EMOTE_VISIBLE
+
+/datum/emote/living/carbon/human/glasses/can_run_emote(mob/user, status_check = TRUE, intentional, params)
+	var/obj/eyes_slot = user.get_item_by_slot(ITEM_SLOT_EYES)
+	if(istype(eyes_slot, /obj/item/clothing/glasses/regular) || istype(eyes_slot, /obj/item/clothing/glasses/sunglasses))
+		return ..()
+	return FALSE
+
+/datum/emote/living/carbon/human/glasses/run_emote(mob/user, params, type_override, intentional)
+	. = ..()
+	var/image/emote_animation = image('icons/mob/human/emote_visuals.dmi', user, "glasses")
+	flick_overlay_global(emote_animation, GLOB.clients, 1.6 SECONDS)
+
 /datum/emote/living/carbon/human/grumble
 	key = "grumble"
 	key_third_person = "grumbles"
 	message = "grumbles!"
-	emote_type = EMOTE_AUDIBLE
+	message_mime = "grumbles silently!"
+	emote_type = EMOTE_AUDIBLE | EMOTE_VISIBLE
 
 /datum/emote/living/carbon/human/handshake
 	key = "handshake"
 	message = "shakes their own hands."
 	message_param = "shakes hands with %t."
 	hands_use_check = TRUE
-	emote_type = EMOTE_AUDIBLE
+	emote_type = EMOTE_AUDIBLE | EMOTE_VISIBLE
 
 /datum/emote/living/carbon/human/hug
 	key = "hug"
@@ -42,36 +54,20 @@
 	key = "mumble"
 	key_third_person = "mumbles"
 	message = "mumbles!"
-	emote_type = EMOTE_AUDIBLE
+	message_mime = "mumbles silently!"
+	emote_type = EMOTE_AUDIBLE | EMOTE_VISIBLE
 
-/datum/emote/living/carbon/human/scream
-	key = "scream"
-	key_third_person = "screams"
-	message = "screams!"
-	message_mime = "acts out a scream!"
-	emote_type = EMOTE_AUDIBLE
-	only_forced_audio = TRUE
-	vary = TRUE
-
-/datum/emote/living/carbon/human/scream/get_sound(mob/living/user)
-	if(!ishuman(user))
-		return
-	var/mob/living/carbon/human/human = user
-	if(human.mind?.miming)
-		return
-	return human.dna.species.get_scream_sound(human)
-
-/datum/emote/living/carbon/human/scream/screech //If a human tries to screech it'll just scream.
+/datum/emote/living/carbon/human/screech // basically scream 2.0
 	key = "screech"
 	key_third_person = "screeches"
-	message = "screeches."
-	emote_type = EMOTE_AUDIBLE
+	message = "screeches!"
+	message_mime = "screeches silently."
+	emote_type = EMOTE_AUDIBLE | EMOTE_VISIBLE
+	specific_emote_audio_cooldown = 10 SECONDS
 	vary = FALSE
 
-/datum/emote/living/carbon/human/scream/screech/should_play_sound(mob/user, intentional)
-	if(ismonkey(user))
-		return TRUE
-	return ..()
+/datum/emote/living/carbon/human/screech/get_sound(mob/living/carbon/human/user)
+	return user.dna.species.get_scream_sound(user)
 
 /datum/emote/living/carbon/human/pale
 	key = "pale"
@@ -89,6 +85,90 @@
 	message = "salutes."
 	message_param = "salutes to %t."
 	hands_use_check = TRUE
+	sound = 'sound/mobs/humanoids/human/salute/salute.ogg'
+
+/datum/emote/living/carbon/human/slit
+	key = "slit"
+	key_third_person = "slits"
+	message = "drags a finger across their neck."
+	hands_use_check = TRUE
+
+/datum/emote/living/carbon/human/scratch_h
+	key = "scratch_h"
+	message = "scratches their head."
+	hands_use_check = TRUE
+
+/datum/emote/living/carbon/human/thumb_up
+	key = "thumb_u"
+	message = "gives a thumbs up."
+	hands_use_check = TRUE
+
+/datum/emote/living/carbon/human/thumb_down
+	key = "thumb_d"
+	message = "gives a thumbs down."
+	hands_use_check = TRUE
+
+/datum/emote/living/carbon/human/time
+	key = "time"
+	message = "checks the time."
+	hands_use_check = TRUE
+
+/datum/emote/living/carbon/human/tap
+	key = "tap"
+	key_third_person = "taps"
+	message = "taps their foot impatiently."
+
+/datum/emote/living/carbon/human/halt
+	key = "halt"
+	key_third_person = "halts"
+	message = "holds up their palm, signaling to stop."
+	hands_use_check = TRUE
+
+/datum/emote/living/carbon/human/shush
+	key = "shush"
+	key_third_person = "shushes"
+	message = "holds a finger to their lips."
+	hands_use_check = TRUE
+
+/datum/emote/living/carbon/human/listen
+	key = "listen"
+	key_third_person = "listens"
+	message = "cups a hand to their ear."
+	hands_use_check = TRUE
+
+/datum/emote/living/carbon/human/think
+	key = "think"
+	key_third_person = "thinks"
+	message = "taps their head, thinking."
+	hands_use_check = TRUE
+
+/datum/emote/living/carbon/human/beckon
+	key = "beckon"
+	key_third_person = "beckons"
+	message = "waves a hand for someone to come closer."
+	hands_use_check = TRUE
+
+/datum/emote/living/carbon/human/airquote
+	key = "airquote"
+	key_third_person = "airquotes"
+	message = "makes air quotes."
+	hands_use_check = TRUE
+
+/datum/emote/living/carbon/human/crazy
+	key = "crazy"
+	message = "twirls a finger next to their head."
+	hands_use_check = TRUE
+
+/datum/emote/living/carbon/human/squint
+	key = "squint"
+	key_third_person = "squints"
+	message = "squints."
+
+/datum/emote/living/carbon/human/rub
+	key = "rub"
+	key_third_person = "rubs"
+	message = "rubs their chin."
+	hands_use_check = TRUE
 
 /datum/emote/living/carbon/human/shrug
 	key = "shrug"
@@ -98,35 +178,31 @@
 /datum/emote/living/carbon/human/wag
 	key = "wag"
 	key_third_person = "wags"
-	message = "wags their tail."
+	message = "their tail."
 
 /datum/emote/living/carbon/human/wag/run_emote(mob/user, params, type_override, intentional)
 	. = ..()
-	if(!.)
-		return
-	var/mob/living/carbon/human/H = user
-	if(!istype(H) || !H.dna || !H.dna.species || !H.dna.species.can_wag_tail(H))
-		return
-	if(!H.dna.species.is_wagging_tail())
-		H.dna.species.start_wagging_tail(H)
+	var/obj/item/organ/tail/oranges_accessory = user.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAIL)
+	//I am so sorry my son
+	//We bypass helpers here cause we already have the tail
+	if(oranges_accessory.wag_flags & WAG_WAGGING) //We verified the tail exists in can_run_emote()
+		oranges_accessory.stop_wag(user)
 	else
-		H.dna.species.stop_wagging_tail(H)
-
-/datum/emote/living/carbon/human/wag/can_run_emote(mob/user, status_check = TRUE , intentional)
-	if(!..())
-		return FALSE
-	var/mob/living/carbon/human/H = user
-	return H.dna && H.dna.species && H.dna.species.can_wag_tail(user)
+		oranges_accessory.start_wag(user)
 
 /datum/emote/living/carbon/human/wag/select_message_type(mob/user, intentional)
 	. = ..()
-	var/mob/living/carbon/human/H = user
-	if(!H.dna || !H.dna.species)
-		return
-	if(H.dna.species.is_wagging_tail())
-		. = null
+	var/obj/item/organ/tail/oranges_accessory = user.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAIL)
+	if(oranges_accessory.wag_flags & WAG_WAGGING)
+		. = "stops wagging " + message
+	else
+		. = "wags " + message
 
-/* Commented out until moth wings have an icon state for being open
+/datum/emote/living/carbon/human/wag/can_run_emote(mob/user, status_check, intentional, params)
+	var/obj/item/organ/tail/tail = user.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAIL)
+	if(tail?.wag_flags & WAG_ABLE)
+		return ..()
+	return FALSE
 
 /datum/emote/living/carbon/human/wing
 	key = "wing"
@@ -135,35 +211,71 @@
 
 /datum/emote/living/carbon/human/wing/run_emote(mob/user, params, type_override, intentional)
 	. = ..()
-	if(.)
-		var/mob/living/carbon/human/H = user
-		var/wings_key = H.dna.species.mutant_bodyparts["wings"]
-		if(wings_key && wings_key != "None" && findtext(select_message_type(user,intentional), "opens"))
-			H.dna.species.mutant_bodyparts["wings"] = "[wings_key]_open"
-		else
-			H.dna.species.mutant_bodyparts["wings"] = "[wings_key]"
+	var/obj/item/organ/wings/functional/wings = user.get_organ_slot(ORGAN_SLOT_EXTERNAL_WINGS)
+	if(isnull(wings))
+		CRASH("[type] ran on a mob that has no wings!")
+	if(wings.wings_open)
+		wings.close_wings()
+	else
+		wings.open_wings()
 
 /datum/emote/living/carbon/human/wing/select_message_type(mob/user, intentional)
-	. = ..()
-	var/mob/living/carbon/human/H = user
-	if(findtext(H.dna.species.mutant_bodyparts["wings"], "_open"))
-		. = "closes " + message
-	else
-		. = "opens " + message
+	var/obj/item/organ/wings/functional/wings = user.get_organ_slot(ORGAN_SLOT_EXTERNAL_WINGS)
+	var/emote_verb = wings.wings_open ? "closes" : "opens"
+	return "[emote_verb] [message]"
 
-/datum/emote/living/carbon/human/wing/can_run_emote(mob/user, status_check = TRUE, intentional)
-	if(!..())
+/datum/emote/living/carbon/human/wing/can_run_emote(mob/user, status_check = TRUE, intentional, params)
+	if(!istype(user.get_organ_slot(ORGAN_SLOT_EXTERNAL_WINGS), /obj/item/organ/wings/functional))
 		return FALSE
-	var/mob/living/carbon/human/H = user
-	if(H.dna.features["wings"] != "None")
-		return TRUE
+	return ..()
 
-*/
+/datum/emote/living/carbon/human/clear_throat
+	key = "clear"
+	key_third_person = "clears throat"
+	message = "clears their throat."
+
+/datum/emote/living/carbon/human/blink
+	key = "blink"
+	key_third_person = "blinks"
+	message = "blinks."
+
+/datum/emote/living/carbon/human/blink/can_run_emote(mob/living/carbon/human/user, status_check, intentional, params)
+	if (!ishuman(user) || HAS_TRAIT(user, TRAIT_PREVENT_BLINKING) || HAS_TRAIT(user, TRAIT_NO_EYELIDS))
+		return FALSE
+	var/obj/item/organ/eyes/eyes = user.get_organ_slot(ORGAN_SLOT_EYES)
+	if (!eyes)
+		return FALSE
+	return ..()
+
+/datum/emote/living/carbon/human/blink/run_emote(mob/living/carbon/human/user, params, type_override, intentional)
+	. = ..()
+	var/obj/item/organ/eyes/eyes = user.get_organ_slot(ORGAN_SLOT_EYES)
+	eyes.blink()
+
+/datum/emote/living/carbon/human/blink_r
+	key = "blink_r"
+	name = "blink (Rapid)"
+	message = "blinks rapidly."
+
+/datum/emote/living/carbon/human/blink_r/can_run_emote(mob/living/carbon/human/user, status_check, intentional, params)
+	if (!ishuman(user) || HAS_TRAIT(user, TRAIT_PREVENT_BLINKING) || HAS_TRAIT(user, TRAIT_NO_EYELIDS))
+		return FALSE
+	var/obj/item/organ/eyes/eyes = user.get_organ_slot(ORGAN_SLOT_EYES)
+	if (!eyes)
+		return FALSE
+	return ..()
+
+/datum/emote/living/carbon/human/blink_r/run_emote(mob/user, params, type_override, intentional)
+	. = ..()
+	var/obj/item/organ/eyes/eyes = user.get_organ_slot(ORGAN_SLOT_EYES)
+	for (var/i in 1 to 3)
+		addtimer(CALLBACK(eyes, TYPE_PROC_REF(/obj/item/organ/eyes, blink), 0.1 SECONDS, FALSE), i * 0.2 SECONDS)
+	eyes.animate_eyelids(user)
 
 ///Snowflake emotes only for le epic chimp
 /datum/emote/living/carbon/human/monkey
 
-/datum/emote/living/carbon/human/monkey/can_run_emote(mob/user, status_check = TRUE, intentional)
+/datum/emote/living/carbon/human/monkey/can_run_emote(mob/user, status_check = TRUE, intentional, params)
 	if(ismonkey(user))
 		return ..()
 	return FALSE
@@ -172,6 +284,7 @@
 	key = "gnarl"
 	key_third_person = "gnarls"
 	message = "gnarls and shows its teeth..."
+	message_mime = "gnarls silently, baring its teeth..."
 
 /datum/emote/living/carbon/human/monkey/roll
 	key = "roll"
@@ -188,202 +301,67 @@
 /datum/emote/living/carbon/human/monkey/screech/roar
 	key = "roar"
 	key_third_person = "roars"
-	message = "roars."
-	emote_type = EMOTE_AUDIBLE
+	message = "roars!"
+	message_mime = "acts out a roar."
+	emote_type = EMOTE_AUDIBLE | EMOTE_VISIBLE
 
 /datum/emote/living/carbon/human/monkey/tail
 	key = "tail"
 	message = "waves their tail."
 
-/datum/emote/living/carbon/human/monkeysign
+/datum/emote/living/carbon/human/monkey/sign
 	key = "sign"
 	key_third_person = "signs"
 	message_param = "signs the number %t."
 	hands_use_check = TRUE
 
-/datum/emote/living/carbon/human/special_check
-	cooldown = 3 SECONDS
-	var/delay = 2.5 SECONDS
-	var/list/attempt_message_list
-	var/list/success_message_list
-	var/list/failure_message_list
+/// emotes for glowy goobers
+/datum/emote/living/carbon/human/glow
+	key = "glow"
+	key_third_person = "glows"
+	message = "glows brightly!"
+	emote_type = EMOTE_VISIBLE
 
-/datum/emote/living/carbon/human/special_check/run_emote(mob/user, params, type_override, intentional = FALSE)
+/datum/emote/living/carbon/human/glow/can_run_emote(mob/living/carbon/human/user, status_check = TRUE , intentional, params)
+	if(!isethereal(user))
+		return FALSE
+	return ..()
+
+/datum/emote/living/carbon/human/glow/run_emote(mob/living/carbon/human/user, params, type_override, intentional)
 	. = ..()
-	if(.)
-		sleep(delay)
+	var/datum/species/ethereal/goober = user.dna.species
+	goober.handle_glow_emote(user, 1.75, 1.2)
 
-		var/mob/living/carbon/human/human = user
-		var/chance = 0
+/datum/emote/living/carbon/human/flare
+	key = "flare"
+	key_third_person = "flares"
+	message = "flares up to a dazzling intensity!"
+	emote_type = EMOTE_VISIBLE
+	sound = "sound/mobs/humanoids/ethereal/ethereal_hiss.ogg"
 
-		switch(key)
-			if("strength")
-				chance = human.special_stats[SPECIAL_STRENGTH] * 10
-			if("perception")
-				chance = human.special_stats[SPECIAL_PERCEPTION] * 10
-			if("endurance")
-				chance = human.special_stats[SPECIAL_ENDURANCE] * 10
-			if("charisma")
-				chance = human.special_stats[SPECIAL_CHARISMA] * 10
-			if("intelligence")
-				chance = human.special_stats[SPECIAL_INTELLIGENCE] * 10
-			if("agility")
-				chance = human.special_stats[SPECIAL_AGILITY] * 10
-			if("luck")
-				chance = human.special_stats[SPECIAL_LUCK] * 10
+/datum/emote/living/carbon/human/flare/can_run_emote(mob/living/carbon/human/user, status_check = TRUE , intentional, params)
+	if(!isethereal(user))
+		return FALSE
+	return ..()
 
-		var/msg = prob(chance) ? span_green("[pick(success_message_list)] ([chance]%)") : span_red("[pick(failure_message_list)] ([chance]%)")
-		
-		msg = replace_pronoun(user, msg)
+/datum/emote/living/carbon/human/flare/run_emote(mob/living/carbon/human/user, params, type_override, intentional)
+	. = ..()
+	var/datum/species/ethereal/goober = user.dna.species
+	goober.handle_glow_emote(user, 12, 6, flare = TRUE, duration = 2 SECONDS, flare_time = 10 SECONDS)
 
-		user.visible_message(msg, blind_message = span_emote("You notice how <b>[user]</b> [msg]"), visible_message_flags = EMOTE_MESSAGE, separation = " ")
+/datum/emote/living/carbon/human/flicker
+	key = "flicker"
+	key_third_person = "flicker"
+	message = "flickers."
+	emote_type = EMOTE_VISIBLE
+	sound = "sound/effects/sparks/sparks4.ogg"
 
-/datum/emote/living/carbon/human/special_check/select_message_type(mob/user, msg, intentional)
-	return pick(attempt_message_list)
+/datum/emote/living/carbon/human/flicker/can_run_emote(mob/living/carbon/human/user, status_check = TRUE , intentional, params)
+	if(!isethereal(user))
+		return FALSE
+	return ..()
 
-/datum/emote/living/carbon/human/special_check/strength
-	key = "strength"
-	key_third_person = "str"
-	attempt_message_list = list(
-		"tests their strength...",
-		"puts their back into it...",
-		"begins to flex...",
-	)
-
-	success_message_list = list(
-		"has some real guns!",
-		"is truly beefy!",
-		"shows off their muscle!",
-	)
-
-	failure_message_list = list(
-		"is a little wet noodle.",
-		"would lose in an arm wrestling match against a mouse.",
-		"should eat more protein.",
-	)
-
-/datum/emote/living/carbon/human/special_check/perception
-	key = "perception"
-	key_third_person = "per"
-	attempt_message_list = list(
-		"takes a good, long look...",
-		"focuses in...",
-		"squints...",
-	)
-
-	success_message_list = list(
-		"has eyes like a hawk!",
-		"sees what others don't!",
-		"has perfect 20/20 vision!",
-	)
-
-	failure_message_list = list(
-		"is totally oblivious.",
-		"forgot their glasses.",
-		"is blind.",
-	)
-
-/datum/emote/living/carbon/human/special_check/endurance
-	key = "endurance"
-	key_third_person = "end"
-	attempt_message_list = list(
-		"tests their toughness...",
-		"braces themselves...",
-		"prepares to endure...",
-	)
-
-	success_message_list = list(
-		"doesn't even flinch!",
-		"is solid as an oak!",
-		"is one tough nut to crack!",
-	)
-
-	failure_message_list = list(
-		"has paper skin.",
-		"would be torn to shreds by a light breeze.",
-		"has a glass jaw.",
-	)
-
-/datum/emote/living/carbon/human/special_check/charisma
-	key = "charisma"
-	key_third_person = "chr"
-	attempt_message_list = list(
-		"puts on the charm...",
-		"clears their throat...",
-		"smirks...",
-	)
-
-	success_message_list = list(
-		"proves the pen is mightier than the sword!",
-		"captures everyone's hearts!",
-		"is a master with words!",
-	)
-
-	failure_message_list = list(
-		"isn't fooling anyone.",
-		"has their charms fall flat.",
-		"is awkward.",
-	)
-
-/datum/emote/living/carbon/human/special_check/intelligence
-	key = "intelligence"
-	key_third_person = "int"
-	attempt_message_list = list(
-		"thinks hard...",
-		"furrows their brows...",
-		"rubs their chin...",
-	)
-
-	success_message_list = list(
-		"is a genius!",
-		"has a mind sharp as a whip!",
-		"knows what they're doing!",
-	)
-
-	failure_message_list = list(
-		"is as dumb as a rock.",
-		"is missing their brain.",
-		"couldn't put 2 and 2 together.",
-	)
-
-/datum/emote/living/carbon/human/special_check/agility
-	key = "agility"
-	key_third_person = "agi"
-	attempt_message_list = list(
-		"prepares their moves...",
-		"starts to get limber...",
-		"tries to get agile...",
-	)
-
-	success_message_list = list(
-		"is in perfect control!",
-		"is as agile as a cat!",
-		"is very flexible!",
-	)
-
-	failure_message_list = list(
-		"has two left feet.",
-		"trips over themselves.",
-		"is slower than a snail.",
-	)
-
-/datum/emote/living/carbon/human/special_check/luck
-	key = "luck"
-	key_third_person = "lck"
-	attempt_message_list = list(
-		"tries their luck...",
-		"takes a chance...",
-		"goes all in...",
-	)
-
-	success_message_list = list(
-		"could make a bullet turn around and climb back into the gun!",
-		"has a rabbit's paw in their pocket!",
-		"succeeds through pure luck!",
-	)
-
-	failure_message_list = list(
-		"realizes the game was rigged from the start.",
-		"gets dealt a bad hand.",
-		"has the odds stacked against them.",
-	)
+/datum/emote/living/carbon/human/flicker/run_emote(mob/living/carbon/human/user, params, type_override, intentional)
+	. = ..()
+	var/datum/species/ethereal/goober = user.dna.species
+	goober.start_flicker(user)

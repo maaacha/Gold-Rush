@@ -35,7 +35,7 @@ GLOBAL_VAR_INIT(glowshrooms, 0)
 	/// Turfs where the glowshroom cannot spread to
 	var/static/list/blacklisted_glowshroom_turfs = typecacheof(list(
 		/turf/open/lava,
-		/turf/open/floor/plating/beach/water,
+		/turf/open/water,
 	))
 
 /obj/structure/glowshroom/glowcap
@@ -49,6 +49,13 @@ GLOBAL_VAR_INIT(glowshrooms, 0)
 	desc = "Mycena Umbra, a species of mushroom that emits shadow instead of light."
 	icon_state = "shadowshroom"
 	myseed = /obj/item/seeds/glowshroom/shadowshroom
+
+/// Mapping object, a glowshroom that doesn't spread or die
+/obj/structure/glowshroom/single
+
+/obj/structure/glowshroom/single/Initialize(mapload, obj/item/seeds/newseed)
+	. = ..()
+	STOP_PROCESSING(SSobj, src)
 
 /obj/structure/glowshroom/single/Spread()
 	return
@@ -125,12 +132,12 @@ GLOBAL_VAR_INIT(glowshrooms, 0)
  * Causes glowshroom spreading across the floor/walls.
  */
 
-/obj/structure/glowshroom/process(delta_time)
+/obj/structure/glowshroom/process(seconds_per_tick)
 	if(COOLDOWN_FINISHED(src, spread_cooldown))
 		COOLDOWN_START(src, spread_cooldown, rand(min_delay_spread, max_delay_spread))
 		Spread()
 
-	Decay(rand(idle_decay_min, idle_decay_max) * delta_time)
+	Decay(rand(idle_decay_min, idle_decay_max) * seconds_per_tick)
 
 
 
@@ -209,7 +216,7 @@ GLOBAL_VAR_INIT(glowshrooms, 0)
 
 	var/list/dir_list = list()
 
-	for(var/i=1,i<=16,i <<= 1)
+	for(var/i=1,i <= 16,i <<= 1)
 		if(direction & i)
 			dir_list += i
 
@@ -239,7 +246,7 @@ GLOBAL_VAR_INIT(glowshrooms, 0)
 
 /obj/structure/glowshroom/play_attack_sound(damage_amount, damage_type = BRUTE, damage_flag = 0)
 	if(damage_type == BURN && damage_amount)
-		playsound(src.loc, 'sound/items/welder.ogg', 100, TRUE)
+		playsound(src.loc, 'sound/items/tools/welder.ogg', 100, TRUE)
 
 /obj/structure/glowshroom/should_atmos_process(datum/gas_mixture/air, exposed_temperature)
 	return exposed_temperature > 300

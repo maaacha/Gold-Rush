@@ -4,7 +4,3 @@
 #define ME_CHANNEL "Me"
 #define OOC_CHANNEL "OOC"
 #define ADMIN_CHANNEL "Admin"
-#define LOOC_CHANNEL "LOOC"
-// Whisper
-#define WHIS_CHANNEL "Whis"
-#define DO_CHANNEL "Do"

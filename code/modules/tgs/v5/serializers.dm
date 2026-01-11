@@ -57,4 +57,3 @@
 		"value" = value,
 		"isInline" = is_inline
 	)
-

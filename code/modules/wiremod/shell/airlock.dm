@@ -2,7 +2,7 @@
 	holder_type = /obj/machinery/door/airlock/shell
 	proper_name = "Circuit Airlock"
 
-/datum/wires/airlock/shell/on_cut(wire, mend)
+/datum/wires/airlock/shell/on_cut(wire, mend, source)
 	// Don't allow them to re-enable autoclose.
 	if(wire == WIRE_TIMING)
 		return
@@ -16,7 +16,7 @@
 	. = ..()
 	AddComponent( \
 		/datum/component/shell, \
-		unremovable_circuit_components = list(new /obj/item/circuit_component/airlock, new /obj/item/circuit_component/airlock_access_event), \
+		unremovable_circuit_components = list(new /obj/item/circuit_component/airlock, new /obj/item/circuit_component/airlock_access_event, new /obj/item/circuit_component/remotecam/airlock), \
 		capacity = SHELL_CAPACITY_LARGE, \
 		shell_flags = SHELL_FLAG_ALLOW_FAILURE_ACTION|SHELL_FLAG_REQUIRE_ANCHOR \
 	)
@@ -31,11 +31,11 @@
 	return FALSE
 
 /obj/machinery/door/airlock/shell/allowed(mob/user)
-	if(SEND_SIGNAL(src, COMSIG_AIRLOCK_SHELL_ALLOWED, user) & COMPONENT_AIRLOCK_SHELL_ALLOW)
+	if(SEND_SIGNAL(src, COMSIG_AIRLOCK_SHELL_ALLOWED, user) & COMPONENT_OBJ_ALLOW)
 		return TRUE
 	return isAdminGhostAI(user)
 
-/obj/machinery/door/airlock/shell/set_wires()
+/obj/machinery/door/airlock/shell/get_wires()
 	return new /datum/wires/airlock/shell(src)
 
 /obj/item/circuit_component/airlock
@@ -156,12 +156,16 @@
 	. = ..()
 	if(istype(shell, /obj/machinery/door/airlock))
 		attached_airlock = shell
-		RegisterSignal(shell, COMSIG_AIRLOCK_SHELL_ALLOWED, PROC_REF(handle_allowed))
+		RegisterSignals(shell, list(
+			COMSIG_OBJ_ALLOWED,
+			COMSIG_AIRLOCK_SHELL_ALLOWED,
+		), PROC_REF(handle_allowed))
 
 /obj/item/circuit_component/airlock_access_event/unregister_shell(atom/movable/shell)
 	attached_airlock = null
 	UnregisterSignal(shell, list(
-		COMSIG_AIRLOCK_SHELL_ALLOWED ,
+		COMSIG_OBJ_ALLOWED,
+		COMSIG_AIRLOCK_SHELL_ALLOWED
 	))
 	return ..()
 
@@ -193,4 +197,6 @@
 		return
 
 	if(result["should_open"])
-		return COMPONENT_AIRLOCK_SHELL_ALLOW
+		return COMPONENT_OBJ_ALLOW
+	else
+		return COMPONENT_OBJ_DISALLOW

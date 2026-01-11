@@ -20,7 +20,7 @@ GLOBAL_PROTECT(poll_options)
 			continue
 		output += "<tr bgcolor='#e2e2e2'><td><a href='byond://?src=[rs];viewpoll=[REF(poll)]'><b>[poll.question]</b></a></td></tr>"
 	output += "</table>"
-	src << browse(jointext(output, ""),"window=playerpolllist;size=500x300")
+	src << browse(HTML_SKELETON(jointext(output, "")),"window=playerpolllist;size=500x300")
 
 /**
  * Redirects a player to the correct poll window based on poll type.
@@ -86,7 +86,7 @@ GLOBAL_PROTECT(poll_options)
 	if(!voted_option_id || poll.allow_revoting)
 		output += "<p><input type='submit' value='Vote'></form>"
 	output += "</div>"
-	src << browse(jointext(output, ""),"window=playerpoll;size=500x250")
+	src << browse(HTML_SKELETON(jointext(output, "")),"window=playerpoll;size=500x250")
 
 /**
  * Shows voting window for a text response type poll, listing its relevant details.
@@ -123,7 +123,7 @@ GLOBAL_PROTECT(poll_options)
 	else
 		output += "[reply_text]"
 	output += "</div>"
-	src << browse(jointext(output, ""),"window=playerpoll;size=500x500")
+	src << browse(HTML_SKELETON(jointext(output, "")),"window=playerpoll;size=500x500")
 
 /**
  * Shows voting window for a rating type poll, listing its options and relevant details.
@@ -178,7 +178,7 @@ GLOBAL_PROTECT(poll_options)
 	if(!length(voted_ratings) || poll.allow_revoting)
 		output += "<p><input type='submit' value='Submit'></form>"
 	output += "</div>"
-	src << browse(jointext(output, ""),"window=playerpoll;size=500x500")
+	src << browse(HTML_SKELETON(jointext(output, "")),"window=playerpoll;size=500x500")
 
 /**
  * Shows voting window for a multiple choice type poll, listing its options and relevant details.
@@ -222,7 +222,7 @@ GLOBAL_PROTECT(poll_options)
 	if(!length(voted_for) || poll.allow_revoting)
 		output += "<p><input type='submit' value='Vote'></form>"
 	output += "</div>"
-	src << browse(jointext(output, ""),"window=playerpoll;size=500x300")
+	src << browse(HTML_SKELETON(jointext(output, "")),"window=playerpoll;size=500x300")
 
 /**
  * Shows voting window for an IRV type poll, listing its options and relevant details.
@@ -264,7 +264,7 @@ GLOBAL_PROTECT(poll_options)
 	<script src="[SSassets.transport.get_asset_url("jquery-ui.custom-core-widgit-mouse-sortable.min.js")]"></script>
 	<style>
 		#sortable { list-style-type: none; margin: 0; padding: 2em; }
-		#sortable li { min-height: 1em; margin: 0px 1px 1px 1px; padding: 1px; border: 1px solid black; border-radius: 5px; background-color: white; cursor: move;}
+		#sortable li { min-height: 1em; margin: 0px 1px 1px 1px; padding: 1px; border: 1px solid black; border-radius: 5px; background-color: white; cursor:move;}
 		#sortable .sortable-placeholder-highlight { min-height: 1em; margin: 0 2px 2px 2px; padding: 2px; border: 1px dotted blue; border-radius: 5px; background-color: GhostWhite; }
 		span.grippy { content: '....'; width: 10px; height: 20px; display: inline-block; overflow: hidden; line-height: 5px; padding: 3px 1px; cursor: move; vertical-align: middle; margin-top: -.7em; margin-right: .3em; font-size: 12px; font-family: sans-serif; letter-spacing: 2px; color: #cccccc; text-shadow: 1px 0 1px black; }
 		span.grippy::after { content: '.. .. .. ..';}
@@ -295,7 +295,7 @@ GLOBAL_PROTECT(poll_options)
 		output += "<font size='2'>Revoting is enabled.</font>"
 	output += "Please sort the options in the order of <b>most preferred</b> to <b>least preferred</b><br></div>"
 	if(!length(voted_for) || poll.allow_revoting)
-		output += {"<form action='?src=[REF(src)]' method='POST'>
+		output += {"<form action='?src=[REF(src)]' method='get'>
 		<input type='hidden' name='src' value='[REF(src)]'>
 		<input type='hidden' name='votepollref' value='[REF(poll)]'>
 		<input type='hidden' name='IRVdata' id='IRVdata'>
@@ -307,7 +307,7 @@ GLOBAL_PROTECT(poll_options)
 	output += "</ol><b><center>Least Preferred</center></b><br>"
 	if(!length(voted_for) || poll.allow_revoting)
 		output += "<p><input type='submit' value='Vote'></form>"
-	output += "</div>"
+	output += "</div></html>"
 	src << browse(jointext(output, ""),"window=playerpoll;size=500x500")
 
 /**
@@ -325,14 +325,14 @@ GLOBAL_PROTECT(poll_options)
 	if(!poll || !href_list)
 		return
 	if(IsAdminAdvancedProcCall())
-		log_game("[key_name(usr)] attempted to rig the vote by voting as [key]")
-		message_admins("[key_name_admin(usr)] attempted to rig the vote by voting as [key]")
+		usr.log_message("attempted to rig the vote by voting as [key].", LOG_ADMIN)
+		message_admins("[key_name_admin(usr)] attempted to rig the vote by voting as [key].")
 		to_chat(usr, span_danger("You don't seem to be [key]."))
-		to_chat(src, span_danger("Something went horribly wrong processing your vote. Please contact an administrator, they should have gotten a message about this"))
+		to_chat(src, span_danger("Something went horribly wrong processing your vote. Please contact an administrator, they should have gotten a message about this."))
 		return
 	var/admin_rank
 	if(client.holder)
-		admin_rank = client.holder.rank.name
+		admin_rank = client.holder.rank_names()
 	else
 		if(poll.admin_only)
 			return

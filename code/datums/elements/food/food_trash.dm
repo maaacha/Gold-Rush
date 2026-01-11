@@ -1,7 +1,7 @@
 // If an item has the food_trash element it will drop an item when it is consumed.
 /datum/element/food_trash
 	element_flags = ELEMENT_BESPOKE
-	id_arg_index = 2
+	argument_hash_start_idx = 2
 	/// The type of trash that is spawned by this element
 	var/atom/trash
 	///Flags of the trash element that change its behavior
@@ -22,14 +22,28 @@
 		RegisterSignal(target, COMSIG_ITEM_ATTACK_SELF, PROC_REF(open_trash))
 	if(flags & FOOD_TRASH_POPABLE)
 		RegisterSignal(target, COMSIG_FOOD_CROSSED, PROC_REF(food_crossed))
-	RegisterSignal(target, COMSIG_ITEM_ON_GRIND, PROC_REF(generate_trash))
-	RegisterSignal(target, COMSIG_ITEM_ON_JUICE, PROC_REF(generate_trash))
-	RegisterSignal(target, COMSIG_ITEM_ON_COMPOSTED, PROC_REF(generate_trash))
-	RegisterSignal(target, COMSIG_ITEM_SOLD_TO_CUSTOMER, PROC_REF(generate_trash))
+	RegisterSignals(target, list(
+		COMSIG_ITEM_ON_GRIND,
+		COMSIG_ITEM_ON_JUICE,
+		COMSIG_ITEM_USED_AS_INGREDIENT,
+		COMSIG_ITEM_ON_COMPOSTED,
+		COMSIG_ITEM_SOLD_TO_CUSTOMER,
+		COMSIG_MOVABLE_SPLAT,
+	), PROC_REF(generate_trash))
 
 /datum/element/food_trash/Detach(datum/target)
 	. = ..()
-	UnregisterSignal(target, COMSIG_FOOD_CONSUMED)
+	UnregisterSignal(target, list(
+		COMSIG_FOOD_CONSUMED,
+		COMSIG_ITEM_ATTACK_SELF,
+		COMSIG_FOOD_CROSSED,
+		COMSIG_ITEM_ON_GRIND,
+		COMSIG_ITEM_ON_JUICE,
+		COMSIG_ITEM_USED_AS_INGREDIENT,
+		COMSIG_ITEM_ON_COMPOSTED,
+		COMSIG_ITEM_SOLD_TO_CUSTOMER,
+		COMSIG_MOVABLE_SPLAT,
+	))
 
 /datum/element/food_trash/proc/generate_trash(datum/source, mob/living/eater, mob/living/feeder)
 	SIGNAL_HANDLER
@@ -39,13 +53,21 @@
 
 /datum/element/food_trash/proc/async_generate_trash(datum/source)
 	var/atom/edible_object = source
+	var/obj/item/trash_item
 
-	var/obj/item/trash_item = generate_trash_procpath ? call(source, generate_trash_procpath)() : new trash(edible_object.drop_location())
+	if(istype(source, /obj/item/food/grown) && ispath(trash, /obj/item/food))
+		var/obj/item/food/grown/plant = source
+		trash_item = ispath(trash, /obj/item/food/grown) ? new trash(edible_object.drop_location(), plant.seed) : new trash(edible_object.drop_location())
+		trash_item.reagents?.set_all_reagents_purity(plant.seed.get_reagent_purity())
+	else
+		trash_item = generate_trash_procpath ? call(source, generate_trash_procpath)() : new trash(edible_object.drop_location())
 
 	if(isliving(edible_object.loc))
 		var/mob/living/food_holding_mob = edible_object.loc
 		food_holding_mob.dropItemToGround(edible_object)
 		food_holding_mob.put_in_hands(trash_item)
+
+	Detach(source)
 
 /datum/element/food_trash/proc/food_crossed(datum/source, mob/crosser, bitecount)
 	SIGNAL_HANDLER
@@ -66,7 +88,7 @@
 /datum/element/food_trash/proc/open_trash(datum/source, mob/user)
 	SIGNAL_HANDLER
 
-	to_chat(user, span_notice("You open the [source], revealing \a [initial(trash.name)]."))
+	to_chat(user, span_notice("You open \the [source], revealing \a [initial(trash.name)]."))
 
 	INVOKE_ASYNC(src, PROC_REF(async_generate_trash), source)
 	qdel(source)

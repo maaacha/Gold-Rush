@@ -46,9 +46,24 @@
 //
 //////////
 
-#define SDQL2_VALID_OPTION_TYPES list("proccall", "select", "priority", "autogc" , "sequential")
-#define SDQL2_VALID_OPTION_VALUES list("async", "blocking", "force_nulls", "skip_nulls", "high", "normal", "keep_alive" , "true")
+#define SDQL2_VALID_OPTION_TYPES list(\
+	"autogc",\
+	"priority",\
+	"proccall",\
+	"select",\
+	"sequential",\
+)
 
+#define SDQL2_VALID_OPTION_VALUES list(\
+	"async",\
+	"blocking",\
+	"force_nulls",\
+	"high",\
+	"keep_alive" ,\
+	"normal",\
+	"skip_nulls",\
+	"true",\
+)
 
 /datum/sdql_parser
 	var/query_type
@@ -94,7 +109,7 @@
 		return null
 
 /datum/sdql_parser/proc/tokenl(i)
-	return lowertext(token(i))
+	return LOWER_TEXT(token(i))
 
 /datum/sdql_parser/proc/query_options(i, list/node)
 	var/list/options = list()
@@ -609,7 +624,7 @@
 		node += "null"
 		i++
 
-	else if(lowertext(copytext(token(i), 1, 3)) == "0x" && isnum(hex2num(copytext(token(i), 3))))//3 == length("0x") + 1
+	else if(LOWER_TEXT(copytext(token(i), 1, 3)) == "0x" && isnum(hex2num(copytext(token(i), 3))))//3 == length("0x") + 1
 		node += hex2num(copytext(token(i), 3))
 		i++
 

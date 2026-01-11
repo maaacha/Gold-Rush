@@ -1,10 +1,10 @@
 ///how much time between charge_level going up by 1
-#define SKYFALL_SINGLE_CHARGE_TIME 2 SECONDS
+#define SKYFALL_SINGLE_CHARGE_TIME (2 SECONDS)
 ///enough charge level to take off, basically done charging
 #define SKYFALL_CHARGELEVEL_LAUNCH 5
 
 ///how much time you're in the air
-#define TOTAL_SKYFALL_LEAP_TIME 3 SECONDS
+#define TOTAL_SKYFALL_LEAP_TIME (3 SECONDS)
 
 /**
  * ## Savannah-Ivanov!
@@ -12,26 +12,44 @@
  * A two person mecha that delegates moving to the driver and shooting to the pilot.
  * ...Hilarious, right?
  */
-/obj/vehicle/sealed/mecha/combat/savannah_ivanov
+/obj/vehicle/sealed/mecha/savannah_ivanov
 	name = "\improper Savannah-Ivanov"
 	desc = "An insanely overbulked mecha that handily crushes single-pilot opponents. The price is that you need two pilots to use it."
-	icon = 'icons/mecha/coop_mech.dmi'
+	icon = 'icons/mob/rideables/coop_mech.dmi'
 	base_icon_state = "savannah_ivanov"
 	icon_state = "savannah_ivanov_0_0"
 	//does not include mmi compatibility
-	mecha_flags = ADDING_ACCESS_POSSIBLE | CANSTRAFE | IS_ENCLOSED | HAS_LIGHTS
+	mecha_flags = CAN_STRAFE | IS_ENCLOSED | HAS_LIGHTS | BEACON_TRACKABLE | BEACON_CONTROLLABLE
+	mech_type = EXOSUIT_MODULE_SAVANNAH
 	movedelay = 3
 	max_integrity = 450 //really tanky, like damn
-	deflect_chance = 25
-	armor = list(MELEE = 45, BULLET = 40, LASER = 30, ENERGY = 30, BOMB = 40, BIO = 0, FIRE = 100, ACID = 100)
+	armor_type = /datum/armor/mecha_savannah_ivanov
 	max_temperature = 30000
+	force = 30
+	destruction_sleep_duration = 40
+	exit_delay = 40
 	wreckage = /obj/structure/mecha_wreckage/savannah_ivanov
-	internal_damage_threshold = 25
 	max_occupants = 2
+	max_equip_by_category = list(
+		MECHA_L_ARM = 1,
+		MECHA_R_ARM = 1,
+		MECHA_UTILITY = 3,
+		MECHA_POWER = 1,
+		MECHA_ARMOR = 1,
+	)
 	//no tax on flying, since the power cost is in the leap itself.
 	phasing_energy_drain = 0
 
-/obj/vehicle/sealed/mecha/combat/savannah_ivanov/get_mecha_occupancy_state()
+/datum/armor/mecha_savannah_ivanov
+	melee = 45
+	bullet = 40
+	laser = 30
+	energy = 30
+	bomb = 40
+	fire = 100
+	acid = 100
+
+/obj/vehicle/sealed/mecha/savannah_ivanov/get_mecha_occupancy_state()
 	var/driver_present = driver_amount() != 0
 	var/gunner_present = return_amount_of_controllers_with_flag(VEHICLE_CONTROL_EQUIPMENT) > 0
 	var/list/mob/drivers = return_drivers()
@@ -41,13 +59,13 @@
 		leap_state = action.skyfall_charge_level > 2 ? "leap_" : ""
 	return "[base_icon_state]_[leap_state][gunner_present]_[driver_present]"
 
-/obj/vehicle/sealed/mecha/combat/savannah_ivanov/auto_assign_occupant_flags(mob/new_occupant)
+/obj/vehicle/sealed/mecha/savannah_ivanov/auto_assign_occupant_flags(mob/new_occupant)
 	if(driver_amount() < max_drivers) //movement
 		add_control_flags(new_occupant, VEHICLE_CONTROL_DRIVE|VEHICLE_CONTROL_SETTINGS)
 	else //weapons
 		add_control_flags(new_occupant, VEHICLE_CONTROL_MELEE|VEHICLE_CONTROL_EQUIPMENT)
 
-/obj/vehicle/sealed/mecha/combat/savannah_ivanov/generate_actions()
+/obj/vehicle/sealed/mecha/savannah_ivanov/generate_actions()
 	initialize_passenger_action_type(/datum/action/vehicle/sealed/mecha/swap_seat)
 	. = ..()
 	initialize_controller_action_type(/datum/action/vehicle/sealed/mecha/skyfall, VEHICLE_CONTROL_DRIVE)
@@ -62,13 +80,15 @@
 	///skyfall builds up in charges every 2 seconds, when it reaches 5 charges the ability actually starts
 	var/skyfall_charge_level = 0
 
-/datum/action/vehicle/sealed/mecha/skyfall/Trigger(trigger_flags)
+/datum/action/vehicle/sealed/mecha/skyfall/Trigger(mob/clicker, trigger_flags)
+	if(!..())
+		return
 	if(!owner || !chassis || !(owner in chassis.occupants))
 		return
 	if(chassis.phasing)
 		to_chat(owner, span_warning("You're already airborne!"))
 		return
-	if(TIMER_COOLDOWN_CHECK(chassis, COOLDOWN_MECHA_SKYFALL))
+	if(TIMER_COOLDOWN_RUNNING(chassis, COOLDOWN_MECHA_SKYFALL))
 		var/timeleft = S_TIMER_COOLDOWN_TIMELEFT(chassis, COOLDOWN_MECHA_SKYFALL)
 		to_chat(owner, span_warning("You need to wait [DisplayTimeText(timeleft, 1)] before attempting to Skyfall."))
 		return
@@ -92,30 +112,30 @@
 	switch(skyfall_charge_level)
 		if(1)
 			chassis.visible_message(span_warning("[chassis] clicks and whirrs for a moment, with a low hum emerging from the legs."))
-			playsound(chassis, 'sound/items/rped.ogg', 50, TRUE)
+			playsound(chassis, 'sound/items/tools/rped.ogg', 50, TRUE)
 		if(2)
 			chassis.visible_message(span_warning("[chassis] begins to shake, the sounds of electricity growing louder."))
-			chassis.Shake(5, 5, SKYFALL_SINGLE_CHARGE_TIME-1) // -1 gives space between the animates, so they don't interrupt eachother
+			chassis.Shake(1, 1, SKYFALL_SINGLE_CHARGE_TIME-1) // -1 gives space between the animates, so they don't interrupt eachother
 		if(3)
 			chassis.visible_message(span_warning("[chassis] assumes a pose as it rattles violently."))
-			chassis.Shake(7, 7, SKYFALL_SINGLE_CHARGE_TIME-1) // -1 gives space between the animates, so they don't interrupt eachother
+			chassis.Shake(2, 2, SKYFALL_SINGLE_CHARGE_TIME-1) // -1 gives space between the animates, so they don't interrupt eachother
 			chassis.spark_system.start()
 			chassis.update_appearance(UPDATE_ICON_STATE)
 		if(4)
 			chassis.visible_message(span_warning("[chassis] sparks and shutters as it finalizes preparation."))
-			playsound(chassis, 'sound/mecha/skyfall_power_up.ogg', 50, TRUE)
-			chassis.Shake(10, 10, SKYFALL_SINGLE_CHARGE_TIME-1) // -1 gives space between the animates, so they don't interrupt eachother
+			playsound(chassis, 'sound/vehicles/mecha/skyfall_power_up.ogg', 50, TRUE)
+			chassis.Shake(3, 3, SKYFALL_SINGLE_CHARGE_TIME-1) // -1 gives space between the animates, so they don't interrupt eachother
 			chassis.spark_system.start()
 		if(SKYFALL_CHARGELEVEL_LAUNCH)
 			chassis.visible_message(span_danger("[chassis] leaps into the air!"))
-			playsound(chassis, 'sound/weapons/gun/general/rocket_launch.ogg', 50, TRUE)
+			playsound(chassis, 'sound/items/weapons/gun/general/rocket_launch.ogg', 50, TRUE)
 	if(skyfall_charge_level != SKYFALL_CHARGELEVEL_LAUNCH)
 		skyfall_charge_loop()
 		return
 	S_TIMER_COOLDOWN_START(chassis, COOLDOWN_MECHA_SKYFALL, skyfall_cooldown_time)
 	button_icon_state = "mech_savannah_cooldown"
-	UpdateButtonIcon()
-	addtimer(CALLBACK(src, TYPE_PROC_REF(/datum/action/vehicle/sealed/mecha/skyfall, reset_button_icon)), skyfall_cooldown_time)
+	build_all_button_icons()
+	addtimer(CALLBACK(src, PROC_REF(reset_button_icon)), skyfall_cooldown_time)
 	for(var/mob/living/shaken in range(7, chassis))
 		shake_camera(shaken, 3, 3)
 
@@ -127,9 +147,8 @@
 	chassis.mecha_flags |= QUIET_STEPS|QUIET_TURNS|CANNOT_INTERACT
 	chassis.phasing = "flying"
 	chassis.movedelay = 1
-	chassis.density = FALSE
+	chassis.set_density(FALSE)
 	chassis.layer = ABOVE_ALL_MOB_LAYER
-	chassis.plane = GAME_PLANE_UPPER_FOV_HIDDEN
 	animate(chassis, alpha = 0, time = 8, easing = QUAD_EASING|EASE_IN, flags = ANIMATION_PARALLEL)
 	animate(chassis, pixel_z = 400, time = 10, easing = QUAD_EASING|EASE_IN, flags = ANIMATION_PARALLEL) //Animate our rising mech (just like pods hehe)
 	addtimer(CALLBACK(src, PROC_REF(begin_landing)), 2 SECONDS)
@@ -152,20 +171,20 @@
  * it's just the animations of the mecha coming down + another timer for the final landing effect
  */
 /datum/action/vehicle/sealed/mecha/skyfall/proc/land()
+	var/turf/landed_on = get_turf(chassis)
 	chassis.visible_message(span_danger("[chassis] lands from above!"))
-	playsound(chassis, 'sound/effects/explosion1.ogg', 50, 1)
+	playsound(chassis, 'sound/effects/explosion/explosion1.ogg', 50, 1)
 	chassis.resistance_flags &= ~INDESTRUCTIBLE
 	chassis.mecha_flags &= ~(QUIET_STEPS|QUIET_TURNS|CANNOT_INTERACT)
 	chassis.phasing = initial(chassis.phasing)
 	chassis.movedelay = initial(chassis.movedelay)
-	chassis.density = TRUE
+	chassis.set_density(TRUE)
 	chassis.layer = initial(chassis.layer)
-	chassis.plane = initial(chassis.plane)
+	SET_PLANE(chassis, initial(chassis.plane), landed_on)
 	skyfall_charge_level = 0
 	chassis.update_appearance(UPDATE_ICON_STATE)
 	for(var/mob/living/shaken in range(7, chassis))
 		shake_camera(shaken, 5, 5)
-	var/turf/landed_on = get_turf(chassis)
 	for(var/thing in range(1, chassis))
 		if(isopenturf(thing))
 			var/turf/open/floor/crushed_tile = thing
@@ -189,13 +208,14 @@
 				to_chat(crushed_victim, span_userdanger("The tremors from [chassis] landing sends you flying!"))
 				var/fly_away_direction = get_dir(chassis, crushed_victim)
 				crushed_victim.throw_at(get_edge_target_turf(crushed_victim, fly_away_direction), 4, 3)
-				crushed_victim.adjustBruteLoss(15)
+				crushed_victim.adjust_brute_loss(15)
 				continue
 			to_chat(crushed_victim, span_userdanger("[chassis] crashes down on you from above!"))
 			if(crushed_victim.stat != CONSCIOUS)
-				crushed_victim.gib(FALSE, FALSE, FALSE)
+				crushed_victim.investigate_log("has been gibbed by a falling Savannah Ivanov mech.", INVESTIGATE_DEATHS)
+				crushed_victim.gib(DROP_ALL_REMAINS)
 				continue
-			crushed_victim.adjustBruteLoss(80)
+			crushed_victim.adjust_brute_loss(80)
 
 /**
  * ## abort_skyfall
@@ -216,7 +236,7 @@
  */
 /datum/action/vehicle/sealed/mecha/skyfall/proc/reset_button_icon()
 	button_icon_state = "mech_savannah"
-	UpdateButtonIcon()
+	build_all_button_icons()
 
 /datum/action/vehicle/sealed/mecha/ivanov_strike
 	name = "Ivanov Strike"
@@ -232,10 +252,12 @@
 		end_missile_targeting()
 	return ..()
 
-/datum/action/vehicle/sealed/mecha/ivanov_strike/Trigger(trigger_flags)
-	if(!owner || !chassis || !(owner in chassis.occupants))
+/datum/action/vehicle/sealed/mecha/ivanov_strike/Trigger(mob/clicker, trigger_flags)
+	if(!..())
 		return
-	if(TIMER_COOLDOWN_CHECK(chassis, COOLDOWN_MECHA_MISSILE_STRIKE))
+	if(!chassis || !(owner in chassis.occupants))
+		return
+	if(TIMER_COOLDOWN_RUNNING(chassis, COOLDOWN_MECHA_MISSILE_STRIKE))
 		var/timeleft = S_TIMER_COOLDOWN_TIMELEFT(chassis, COOLDOWN_MECHA_MISSILE_STRIKE)
 		to_chat(owner, span_warning("You need to wait [DisplayTimeText(timeleft, 1)] before firing another Ivanov Strike."))
 		return
@@ -251,7 +273,7 @@
  */
 /datum/action/vehicle/sealed/mecha/ivanov_strike/proc/reset_button_icon()
 	button_icon_state = "mech_ivanov"
-	UpdateButtonIcon()
+	build_all_button_icons()
 
 /**
  * ## start_missile_targeting
@@ -268,12 +290,12 @@
 	owner.client.mouse_override_icon = 'icons/effects/mouse_pointers/supplypod_down_target.dmi'
 	owner.update_mouse_pointer()
 	owner.overlay_fullscreen("ivanov", /atom/movable/screen/fullscreen/ivanov_display, 1)
-	SEND_SOUND(owner, 'sound/machines/terminal_on.ogg') //spammable so I don't want to make it audible to anyone else
+	SEND_SOUND(owner, 'sound/machines/terminal/terminal_on.ogg') //spammable so I don't want to make it audible to anyone else
 
 /**
  * ## end_missile_targeting
  *
- * Called by the ivanov strike datum action or other actions that would end targetting
+ * Called by the ivanov strike datum action or other actions that would end targeting
  * Unhooks signals into clicking to call drop_missile plus other flavor like the overlay
  */
 /datum/action/vehicle/sealed/mecha/ivanov_strike/proc/end_missile_targeting()
@@ -310,16 +332,16 @@
 	rockets_left--
 	if(rockets_left <= 0)
 		end_missile_targeting()
-	SEND_SOUND(owner, 'sound/machines/triple_beep.ogg')
+	SEND_SOUND(owner, 'sound/machines/beep/triple_beep.ogg')
 	S_TIMER_COOLDOWN_START(chassis, COOLDOWN_MECHA_MISSILE_STRIKE, strike_cooldown_time)
 	podspawn(list(
 		"target" = target_turf,
-		"style" = STYLE_MISSILE,
+		"style" = /datum/pod_style/missile,
 		"effectMissile" = TRUE,
 		"explosionSize" = list(0,0,1,2)
 	))
 	button_icon_state = "mech_ivanov_cooldown"
-	UpdateButtonIcon()
+	build_all_button_icons()
 	addtimer(CALLBACK(src, TYPE_PROC_REF(/datum/action/vehicle/sealed/mecha/ivanov_strike, reset_button_icon)), strike_cooldown_time)
 
 //misc effects
@@ -335,9 +357,9 @@
 	pixel_y = -32
 	alpha = 0
 	///reference to mecha following
-	var/obj/vehicle/sealed/mecha/combat/mecha
+	var/obj/vehicle/sealed/mecha/mecha
 
-/obj/effect/skyfall_landingzone/Initialize(mapload, obj/vehicle/sealed/mecha/combat/mecha)
+/obj/effect/skyfall_landingzone/Initialize(mapload, obj/vehicle/sealed/mecha/mecha)
 	. = ..()
 	if(!mecha)
 		stack_trace("Skyfall landing zone created without mecha")

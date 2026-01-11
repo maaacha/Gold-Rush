@@ -42,4 +42,3 @@
 
 		return result ? result.text : TRUE
 	return "Unknown command: [command]!"
-

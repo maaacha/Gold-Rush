@@ -1,6 +1,8 @@
-#define WIRE_RECEIVE (1<<0)
-#define WIRE_PULSE (1<<1)
-#define WIRE_PULSE_SPECIAL (1<<2)
-#define WIRE_RADIO_RECEIVE (1<<3)
-#define WIRE_RADIO_PULSE (1<<4)
+/// When combined in a holder, blacklists duplicate assemblies
+#define ASSEMBLY_NO_DUPLICATES (1<<0)
+
+/// How loud do assemblies beep at
 #define ASSEMBLY_BEEP_VOLUME 5
+
+/// The max amount of assemblies attachable on an assembly holder
+#define HOLDER_MAX_ASSEMBLIES 12

@@ -6,10 +6,25 @@
 	///Contains the reagents within the tray.
 	if(myseed)
 		myseed.on_chem_reaction(reagents) //In case seeds have some special interactions with special chems, currently only used by vines
-	for(var/c in reagents.reagent_list)
-		var/datum/reagent/chem = c
-		chem.on_hydroponics_apply(myseed, reagents, src, user)
+	for(var/datum/reagent/chem as anything in reagents.reagent_list)
+		if(chem.volume < 1)
+			continue
+		chem.on_hydroponics_apply(src, user)
 
+/obj/machinery/hydroponics/expose_reagents(list/reagents, datum/reagents/source, methods = TOUCH, volume_modifier = 1, show_message = TRUE)
+	. = ..()
+	if(. & COMPONENT_NO_EXPOSE_REAGENTS)
+		return
+
+	if(src.reagents.holder_full())
+		return
+
+	for(var/datum/reagent/reagent as anything in reagents)
+		if(istype(reagent, /datum/reagent/water))
+			adjust_waterlevel(round(reagents[reagent]))
+		else
+			src.reagents.add_reagent(reagent.type, reagents[reagent])
+	update_appearance()
 
 /obj/machinery/hydroponics/proc/mutation_roll(mob/user)
 	switch(rand(100))

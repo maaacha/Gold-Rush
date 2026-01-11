@@ -15,6 +15,7 @@ It's like a regular ol' straight pipe, but you can turn it on and off.
 	construction_type = /obj/item/pipe/binary
 	pipe_state = "mvalve"
 	custom_reconcilation = TRUE
+	use_power = NO_POWER_USE
 	///Type of valve (manual or digital), used to set the icon of the component in update_icon_nopipes()
 	var/valve_type = MANUAL_VALVE
 	///Bool to stop interactions while the opening/closing animation is going
@@ -24,6 +25,7 @@ It's like a regular ol' straight pipe, but you can turn it on and off.
 	normalize_cardinal_directions()
 	if(animation)
 		flick("[valve_type]valve_[on][!on]-[set_overlay_offset(piping_layer)]", src)
+		playsound(src, 'sound/effects/valve_opening.ogg', 50)
 	icon_state = "[valve_type]valve_[on ? "on" : "off"]-[set_overlay_offset(piping_layer)]"
 
 /**
@@ -34,17 +36,18 @@ It's like a regular ol' straight pipe, but you can turn it on and off.
 		return
 	SEND_SIGNAL(src, COMSIG_VALVE_SET_OPEN, to_open)
 	. = on
-	on = to_open
+	set_on(to_open)
 	if(on)
-		update_icon_nopipes()
+		playsound(src, 'sound/effects/gas_hissing.ogg', 50)
 		update_parents()
 		var/datum/pipeline/parent1 = parents[1]
 		parent1.reconcile_air()
 		investigate_log("was opened by [usr ? key_name(usr) : "a remote signal"]", INVESTIGATE_ATMOS)
+		balloon_alert_to_viewers("valve opened")
 		vent_movement |= VENTCRAWL_ALLOWED
 	else
-		update_icon_nopipes()
 		investigate_log("was closed by [usr ? key_name(usr) : "a remote signal"]", INVESTIGATE_ATMOS)
+		balloon_alert_to_viewers("valve closed")
 		vent_movement &= ~VENTCRAWL_ALLOWED
 
 
@@ -54,8 +57,8 @@ It's like a regular ol' straight pipe, but you can turn it on and off.
 	. = ..()
 	if(!on)
 		return
-	. += parents[1]
-	. += parents[2]
+	. |= parents[1]
+	. |= parents[2]
 
 /obj/machinery/atmospherics/components/binary/valve/interact(mob/user)
 	add_fingerprint(usr)
@@ -84,7 +87,7 @@ It's like a regular ol' straight pipe, but you can turn it on and off.
 
 /obj/machinery/atmospherics/components/binary/valve/digital/Initialize(mapload)
 	. = ..()
-	AddComponent(/datum/component/usb_port, list(/obj/item/circuit_component/digital_valve))
+	AddComponent(/datum/component/usb_port, typecacheof(list(/obj/item/circuit_component/digital_valve), only_root_path = TRUE))
 
 /obj/item/circuit_component/digital_valve
 	display_name = "Digital Valve"

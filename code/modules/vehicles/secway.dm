@@ -4,12 +4,18 @@
 	desc = "A brave security cyborg gave its life to help you look like a complete tool."
 	icon_state = "secway"
 	max_integrity = 60
-	armor = list(MELEE = 10, BULLET = 0, LASER = 10, ENERGY = 0, BOMB = 0, BIO = 0, FIRE = 60, ACID = 60)
+	armor_type = /datum/armor/ridden_secway
 	key_type = /obj/item/key/security
 	integrity_failure = 0.5
 
 	///This stores a banana that, when used on the secway, prevents the vehicle from moving until it is removed.
 	var/obj/item/food/grown/banana/eddie_murphy
+
+/datum/armor/ridden_secway
+	melee = 10
+	laser = 10
+	fire = 60
+	acid = 60
 
 /obj/vehicle/ridden/secway/Initialize(mapload)
 	. = ..()
@@ -19,31 +25,43 @@
 	START_PROCESSING(SSobj, src)
 	return ..()
 
-/obj/vehicle/ridden/secway/process(delta_time)
+/obj/vehicle/ridden/secway/process(seconds_per_tick)
 	if(atom_integrity >= integrity_failure * max_integrity)
 		return PROCESS_KILL
-	if(DT_PROB(10, delta_time))
+	if(SPT_PROB(10, seconds_per_tick))
 		return
-	var/datum/effect_system/smoke_spread/smoke = new
-	smoke.set_up(0, src)
+	var/datum/effect_system/fluid_spread/smoke/smoke = new
+	smoke.set_up(0, holder = src, location = src)
 	smoke.start()
 
-/obj/vehicle/ridden/secway/welder_act(mob/living/user, obj/item/I)
-	. = ..()
-	if(.)
+/obj/vehicle/ridden/secway/welder_act(mob/living/user, obj/item/W)
+	if(user.combat_mode)
+		return
+	. = TRUE
+	if(DOING_INTERACTION(user, src))
+		balloon_alert(user, "you're already repairing it!")
 		return
 	if(atom_integrity >= max_integrity)
-		to_chat(user, span_notice("It is fully repaired already!"))
+		balloon_alert(user, "it's not damaged!")
 		return
-	if(!I.use_tool(src, user, 0, volume = 50, amount = 1))
+	if(!W.tool_start_check(user, amount=1, heat_required = HIGH_TEMPERATURE_REQUIRED))
 		return
-	user.visible_message(span_notice("[user] repairs some damage to [name]."), span_notice("You repair some damage to \the [src]."))
-	atom_integrity += min(10, max_integrity-atom_integrity)
-	if(atom_integrity >= max_integrity)
-		to_chat(user, span_notice("It looks to be fully repaired now."))
-		STOP_PROCESSING(SSobj, src)
+	user.balloon_alert_to_viewers("started welding [src]", "started repairing [src]")
+	audible_message(span_hear("You hear welding."))
+	var/did_the_thing
+	while(atom_integrity < max_integrity)
+		if(W.use_tool(src, user, 2.5 SECONDS, volume=50))
+			did_the_thing = TRUE
+			atom_integrity += min(10, (max_integrity - atom_integrity))
+			audible_message(span_hear("You hear welding."))
+		else
+			break
+	if(did_the_thing)
+		user.balloon_alert_to_viewers("[(atom_integrity >= max_integrity) ? "fully" : "partially"] repaired [src]")
+	else
+		user.balloon_alert_to_viewers("stopped welding [src]", "interrupted the repair!")
 
-/obj/vehicle/ridden/secway/attackby(obj/item/W, mob/living/user, params)
+/obj/vehicle/ridden/secway/attackby(obj/item/W, mob/living/user, list/modifiers, list/attack_modifiers)
 	if(!istype(W, /obj/item/food/grown/banana))
 		return ..()
 	// ignore the occupants because they're presumably too distracted to notice the guy stuffing fruit into their vehicle's exhaust. do segways have exhausts? they do now!
@@ -59,7 +77,7 @@
 	if(!eddie_murphy)
 		return ..()
 	user.visible_message(span_warning("[user] begins cleaning [eddie_murphy] out of [src]."), span_warning("You begin cleaning [eddie_murphy] out of [src]..."))
-	if(!do_after(user, 60, target = src))
+	if(!do_after(user, 6 SECONDS, target = src))
 		return ..()
 	user.visible_message(span_warning("[user] cleans [eddie_murphy] out of [src]."), span_warning("You manage to get [eddie_murphy] out of [src]."))
 	eddie_murphy.forceMove(drop_location())
@@ -79,9 +97,9 @@
 	return ..()
 
 //bullets will have a 60% chance to hit any riders
-/obj/vehicle/ridden/secway/bullet_act(obj/projectile/P)
+/obj/vehicle/ridden/secway/projectile_hit(obj/projectile/hitting_projectile, def_zone, piercing_hit, blocked)
 	if(!buckled_mobs || prob(40))
 		return ..()
 	for(var/mob/rider as anything in buckled_mobs)
-		rider.bullet_act(P)
-	return TRUE
+		return rider.projectile_hit(hitting_projectile)
+	return ..()

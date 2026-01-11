@@ -1,6 +1,7 @@
 /// Inert structures, such as girders, machine frames, and crates/lockers.
 /obj/structure
 	icon = 'icons/obj/structures.dmi'
+	abstract_type = /obj/structure
 	pressure_resistance = 8
 	max_integrity = 300
 	interaction_flags_atom = INTERACT_ATOM_ATTACK_HAND | INTERACT_ATOM_UI_INTERACT
@@ -9,28 +10,26 @@
 	receive_ricochet_chance_mod = 0.6
 	pass_flags_self = PASSSTRUCTURE
 	blocks_emissive = EMISSIVE_BLOCK_GENERIC
+	armor_type = /datum/armor/obj_structure
+	burning_particles = /particles/smoke/burning
 	var/broken = FALSE
-	var/weatherproof = FALSE //MOJAVE SUN EDIT - Weather
-	var/projectile_passchance = 0 // MOJAVE SUN EDIT - projectile passthrough chance 100% always goes through, 0% never goes through. Definition isn't required if structure doesn't have density, duh.
+
+/datum/armor/obj_structure
+	fire = 50
+	acid = 50
 
 /obj/structure/Initialize(mapload)
-	if (!armor)
-		armor = list(MELEE = 0, BULLET = 0, LASER = 0, ENERGY = 0, BOMB = 0, BIO = 0, FIRE = 50, ACID = 50)
 	. = ..()
-	if(smoothing_flags & (SMOOTH_CORNERS|SMOOTH_BITMASK))
+	if(smoothing_flags & USES_SMOOTHING)
 		QUEUE_SMOOTH(src)
 		QUEUE_SMOOTH_NEIGHBORS(src)
-		if(smoothing_flags & SMOOTH_CORNERS)
-			icon_state = ""
-	GLOB.cameranet.updateVisibility(src)
 
-/obj/structure/Destroy()
-	GLOB.cameranet.updateVisibility(src)
-	if(smoothing_flags & (SMOOTH_CORNERS|SMOOTH_BITMASK))
+/obj/structure/Destroy(force)
+	if(smoothing_flags & USES_SMOOTHING)
 		QUEUE_SMOOTH_NEIGHBORS(src)
 	return ..()
 
-/obj/structure/ui_act(action, params)
+/obj/structure/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	add_fingerprint(usr)
 	return ..()
 
@@ -56,31 +55,30 @@
 			if(!broken)
 				return  span_warning("It's falling apart!")
 
+/obj/structure/examine_descriptor(mob/user)
+	return "structure"
+
 /obj/structure/rust_heretic_act()
 	take_damage(500, BRUTE, "melee", 1)
 
 /obj/structure/zap_act(power, zap_flags)
 	if(zap_flags & ZAP_OBJ_DAMAGE)
-		take_damage(power/8000, BURN, "energy")
-	power -= power/2000 //walls take a lot out of ya
+		take_damage(power * 2.5e-4, BURN, "energy")
+	power -= power * 5e-4 //walls take a lot out of ya
 	. = ..()
 
-// MOJAVE SUN EDIT BEGIN - This is put here so that we don't have to redefine this on every single structure and can do it cleaner.
+/obj/structure/animate_atom_living(mob/living/owner)
+	new /mob/living/basic/mimic/copy(drop_location(), src, owner)
 
-/obj/structure/CanAllowThrough(atom/movable/mover, border_dir)
+/// For when a mob comes flying through the window, smash it and damage the mob
+/obj/structure/proc/smash_and_injure(mob/living/flying_mob, atom/oldloc, direction)
+	flying_mob.balloon_alert_to_viewers("smashed through!")
+	flying_mob.apply_damage(damage = rand(5, 15), damagetype = BRUTE, wound_bonus = 15, exposed_wound_bonus = 25, sharpness = SHARP_EDGED, attack_direction = get_dir(src, oldloc))
+	new /obj/effect/decal/cleanable/glass(get_step(flying_mob, flying_mob.dir))
+	deconstruct(disassembled = FALSE)
+
+/obj/structure/used_in_craft(atom/result, datum/crafting_recipe/current_recipe)
 	. = ..()
-	if(istype(loc, /obj/structure) in get_turf(mover))
-		return TRUE
-	else if(istype(mover, /obj/projectile))
-		if(!projectile_passchance)
-			return
-		if(!anchored)
-			return TRUE
-		var/obj/projectile/proj = mover
-		if(proj.firer && Adjacent(proj.firer))
-			return TRUE
-		if(prob((projectile_passchance)))
-			return TRUE
-		return FALSE
-
-// MOJAVE SUN EDIT END
+	// If we consumed in crafting, we should dump contents out before qdeling them.
+	if(!is_type_in_list(src, current_recipe.parts))
+		dump_contents()

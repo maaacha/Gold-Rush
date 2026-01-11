@@ -17,29 +17,35 @@
 //misc footstep sounds
 #define FOOTSTEP_GENERIC_HEAVY "heavy"
 
+
 //footstep mob defines
-#define FOOTSTEP_MOB_CLAW 1
-#define FOOTSTEP_MOB_BAREFOOT 2
-#define FOOTSTEP_MOB_HEAVY 3
-#define FOOTSTEP_MOB_SHOE 4
-#define FOOTSTEP_MOB_HUMAN 5 //Warning: Only works on /mob/living/carbon/human
-#define FOOTSTEP_MOB_SLIME 6
-#define FOOTSTEP_OBJ_MACHINE 7
-#define FOOTSTEP_OBJ_ROBOT 8
-#define FOOTSTEP_PA 9 //MOJAVE ADD
+#define FOOTSTEP_MOB_CLAW "footstep_claw"
+#define FOOTSTEP_MOB_BAREFOOT "footstep_barefoot"
+#define FOOTSTEP_MOB_HEAVY "footstep_heavy"
+#define FOOTSTEP_MOB_SHOE "footstep_shoe"
+#define FOOTSTEP_MOB_HUMAN "footstep_human" //Warning: Only works on /mob/living/carbon/human
+#define FOOTSTEP_MOB_SLIME "footstep_slime"
+#define FOOTSTEP_MOB_RUST "footstep_rust"
+#define FOOTSTEP_OBJ_MACHINE "footstep_machine"
+#define FOOTSTEP_OBJ_ROBOT "footstep_robot"
+
+//priority defines for the footstep_override element
+#define STEP_SOUND_NO_PRIORITY 0
+#define STEP_SOUND_CONVEYOR_PRIORITY 1
+#define STEP_SOUND_TABLE_PRIORITY 2
+
+///the name of the index key for priority
+#define STEP_SOUND_PRIORITY "step_sound_priority"
 
 /*
+Below is how the following lists are defined
 
 id = list(
 list(sounds),
 base volume,
 extra range addition
 )
-
-
 */
-
-/* MOJAVE EDIT REMOVAL
 
 GLOBAL_LIST_INIT(footstep, list(
 	FOOTSTEP_WOOD = list(list(
@@ -78,10 +84,10 @@ GLOBAL_LIST_INIT(footstep, list(
 		'sound/effects/footstep/grass3.ogg',
 		'sound/effects/footstep/grass4.ogg'), 75, 0),
 	FOOTSTEP_WATER = list(list(
-		'sound/effects/footstep/water1.ogg',
-		'sound/effects/footstep/water2.ogg',
-		'sound/effects/footstep/water3.ogg',
-		'sound/effects/footstep/water4.ogg'), 100, 1),
+		'sound/effects/footstep/water/water1.ogg',
+		'sound/effects/footstep/water/water2.ogg',
+		'sound/effects/footstep/water/water3.ogg',
+		'sound/effects/footstep/water/water4.ogg'), 100, 1),
 	FOOTSTEP_LAVA = list(list(
 		'sound/effects/footstep/lava1.ogg',
 		'sound/effects/footstep/lava2.ogg',
@@ -95,6 +101,7 @@ GLOBAL_LIST_INIT(footstep, list(
 		'sound/effects/footstep/catwalk4.ogg',
 		'sound/effects/footstep/catwalk5.ogg'), 100, 1),
 ))
+
 //bare footsteps lists
 GLOBAL_LIST_INIT(barefootstep, list(
 	FOOTSTEP_WOOD_BAREFOOT = list(list(
@@ -127,10 +134,10 @@ GLOBAL_LIST_INIT(barefootstep, list(
 		'sound/effects/footstep/grass3.ogg',
 		'sound/effects/footstep/grass4.ogg'), 75, 0),
 	FOOTSTEP_WATER = list(list(
-		'sound/effects/footstep/water1.ogg',
-		'sound/effects/footstep/water2.ogg',
-		'sound/effects/footstep/water3.ogg',
-		'sound/effects/footstep/water4.ogg'), 100, 1),
+		'sound/effects/footstep/water/water1.ogg',
+		'sound/effects/footstep/water/water2.ogg',
+		'sound/effects/footstep/water/water3.ogg',
+		'sound/effects/footstep/water/water4.ogg'), 100, 1),
 	FOOTSTEP_LAVA = list(list(
 		'sound/effects/footstep/lava1.ogg',
 		'sound/effects/footstep/lava2.ogg',
@@ -171,10 +178,10 @@ GLOBAL_LIST_INIT(clawfootstep, list(
 		'sound/effects/footstep/grass3.ogg',
 		'sound/effects/footstep/grass4.ogg'), 75, 0),
 	FOOTSTEP_WATER = list(list(
-		'sound/effects/footstep/water1.ogg',
-		'sound/effects/footstep/water2.ogg',
-		'sound/effects/footstep/water3.ogg',
-		'sound/effects/footstep/water4.ogg'), 100, 1),
+		'sound/effects/footstep/water/water1.ogg',
+		'sound/effects/footstep/water/water2.ogg',
+		'sound/effects/footstep/water/water3.ogg',
+		'sound/effects/footstep/water/water4.ogg'), 100, 1),
 	FOOTSTEP_LAVA = list(list(
 		'sound/effects/footstep/lava1.ogg',
 		'sound/effects/footstep/lava2.ogg',
@@ -189,10 +196,10 @@ GLOBAL_LIST_INIT(heavyfootstep, list(
 		'sound/effects/footstep/heavy1.ogg',
 		'sound/effects/footstep/heavy2.ogg'), 100, 2),
 	FOOTSTEP_WATER = list(list(
-		'sound/effects/footstep/water1.ogg',
-		'sound/effects/footstep/water2.ogg',
-		'sound/effects/footstep/water3.ogg',
-		'sound/effects/footstep/water4.ogg'), 100, 2),
+		'sound/effects/footstep/water/water1.ogg',
+		'sound/effects/footstep/water/water2.ogg',
+		'sound/effects/footstep/water/water3.ogg',
+		'sound/effects/footstep/water/water4.ogg'), 100, 2),
 	FOOTSTEP_LAVA = list(list(
 		'sound/effects/footstep/lava1.ogg',
 		'sound/effects/footstep/lava2.ogg',
@@ -201,4 +208,4 @@ GLOBAL_LIST_INIT(heavyfootstep, list(
 		'sound/effects/meatslap.ogg'), 100, 0),
 ))
 
-MOJAVE EDIT REMOVAL END */
+#define SHOULD_DISABLE_FOOTSTEPS(source) ((SSlag_switch.measures[DISABLE_FOOTSTEPS] && !(HAS_TRAIT(source, TRAIT_BYPASS_MEASURES))) || HAS_TRAIT(source, TRAIT_SILENT_FOOTSTEPS))

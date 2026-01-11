@@ -1,3 +1,0 @@
-//would be very weird if examining a hud object showed up in chat...
-/atom/movable/screen/on_examined_check()
-	return FALSE

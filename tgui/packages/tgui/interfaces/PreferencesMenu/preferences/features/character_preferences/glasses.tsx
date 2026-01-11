@@ -1,6 +1,9 @@
-import { FeatureChoiced, FeatureDropdownInput } from '../base';
+import {
+  FeatureIconnedDropdownInput,
+  type FeatureWithIcons,
+} from '../dropdowns';
 
-export const glasses: FeatureChoiced = {
+export const glasses: FeatureWithIcons<string> = {
   name: 'Glasses',
-  component: FeatureDropdownInput,
+  component: FeatureIconnedDropdownInput,
 };

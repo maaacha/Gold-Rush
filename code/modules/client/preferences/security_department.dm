@@ -21,5 +21,7 @@
 	return SEC_DEPT_NONE
 
 /datum/preference/choiced/security_department/is_accessible(datum/preferences/preferences)
-	. = ..()
-	return FALSE //MOJAVE SUN EDIT - Prefs
+	if (!..(preferences))
+		return FALSE
+
+	return !CONFIG_GET(flag/sec_start_brig)

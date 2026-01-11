@@ -1,7 +1,7 @@
 /// When the `AUTOWIKI` define is enabled, will generate an output file for tools/autowiki/autowiki.js to consume.
 /// Autowiki code intentionally still *exists* even without the define, to ensure developers notice
 /// when they break it immediately, rather than until CI or worse, call time.
-#if defined(AUTOWIKI)
+#if defined(AUTOWIKI) || defined(UNIT_TESTS)
 /proc/setup_autowiki()
 	Master.sleep_offline_after_initializations = FALSE
 	SSticker.OnRoundstart(CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(generate_autowiki)))
